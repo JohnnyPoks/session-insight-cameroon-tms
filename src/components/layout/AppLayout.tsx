@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Switch, Typography } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
@@ -63,10 +62,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       label: 'Lecturers',
     },
     {
-      key: '/analytics',
+      key: '/questionnaires',
       icon: <FileText className="w-4 h-4" />,
+      label: 'Questionnaires',
+    },
+    {
+      key: '/analytics',
+      icon: <Settings className="w-4 h-4" />,
       label: 'Analytics',
     },
+    ...(user?.role === 'dean' ? [{
+      key: '/system-config',
+      icon: <Settings className="w-4 h-4" />,
+      label: 'System Config',
+    }] : [])
   ];
 
   const userMenuItems = [

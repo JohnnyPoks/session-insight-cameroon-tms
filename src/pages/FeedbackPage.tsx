@@ -48,10 +48,13 @@ const FeedbackPage: React.FC = () => {
 
   const handleSubmit = async (values: any) => {
     try {
-      const scores: FeedbackScores = {};
-      dimensions.forEach(dim => {
-        scores[dim.key] = values[dim.key] || 1;
-      });
+      const scores: FeedbackScores = {
+        'Clarity & Organization': values['Clarity & Organization'] || 3,
+        'Student Engagement': values['Student Engagement'] || 3,
+        'Pedagogical Methods & Activities': values['Pedagogical Methods & Activities'] || 3,
+        'Content Delivery & Subject Mastery': values['Content Delivery & Subject Mastery'] || 3,
+        'Perceived Learning Impact': values['Perceived Learning Impact'] || 3
+      };
 
       await submitFeedback({
         sessionId: sessionId!,

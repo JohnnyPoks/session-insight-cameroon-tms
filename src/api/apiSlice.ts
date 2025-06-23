@@ -1,7 +1,7 @@
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../app/store';
-import type { User, Course, Lecturer, Session, Feedback, SessionAnalytics } from '../types';
+import type { User, Course, Lecturer, Session, Feedback, SessionAnalytics, Questionnaire } from '../types';
 
 export const apiSlice = createApi({
   reducerPath: 'api',
@@ -15,7 +15,7 @@ export const apiSlice = createApi({
       return headers;
     },
   }),
-  tagTypes: ['User', 'Course', 'Lecturer', 'Session', 'Feedback', 'Analytics'],
+  tagTypes: ['User', 'Course', 'Lecturer', 'Session', 'Feedback', 'Analytics', 'Questionnaire'],
   endpoints: (builder) => ({
     // Auth
     login: builder.mutation<{ user: User; token: string }, { username: string; password: string }>({
@@ -127,6 +127,35 @@ export const apiSlice = createApi({
       invalidatesTags: ['Feedback', 'Analytics'],
     }),
 
+    // Questionnaires
+    getQuestionnaires: builder.query<Questionnaire[], void>({
+      query: () => '/questionnaires',
+      providesTags: ['Questionnaire'],
+    }),
+    createQuestionnaire: builder.mutation<Questionnaire, Partial<Questionnaire>>({
+      query: (questionnaire) => ({
+        url: '/questionnaires',
+        method: 'POST',
+        body: questionnaire,
+      }),
+      invalidatesTags: ['Questionnaire'],
+    }),
+    updateQuestionnaire: builder.mutation<Questionnaire, { id: string; data: Partial<Questionnaire> }>({
+      query: ({ id, data }) => ({
+        url: `/questionnaires/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Questionnaire'],
+    }),
+    deleteQuestionnaire: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/questionnaires/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Questionnaire'],
+    }),
+
     // Analytics
     getOverviewAnalytics: builder.query<{
       averageSEI: number;
@@ -160,6 +189,10 @@ export const {
   useUpdateSessionMutation,
   useDeleteSessionMutation,
   useSubmitFeedbackMutation,
+  useGetQuestionnairesQuery,
+  useCreateQuestionnaireMutation,
+  useUpdateQuestionnaireMutation,
+  useDeleteQuestionnaireMutation,
   useGetOverviewAnalyticsQuery,
   useGetSessionAnalyticsQuery,
 } = apiSlice;

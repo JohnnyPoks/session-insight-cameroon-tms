@@ -1,5 +1,5 @@
 
-import { createServer, Factory, Model, Response, belongsTo, hasMany } from 'miragejs';
+import { createServer, Factory, Model, Response } from 'miragejs';
 import { v4 as uuidv4 } from 'uuid';
 import type { User, Course, Lecturer, Session, Feedback, FeedbackScores } from '../types';
 
@@ -34,6 +34,42 @@ const generateFeedbackScores = (): FeedbackScores => ({
   'Perceived Learning Impact': generateRandomScore()
 });
 
+const calculateAverageScores = (feedbackList: any[]): FeedbackScores => {
+  const dimensions = [
+    'Clarity & Organization',
+    'Student Engagement', 
+    'Pedagogical Methods & Activities',
+    'Content Delivery & Subject Mastery',
+    'Perceived Learning Impact'
+  ] as const;
+
+  const avgScores = {} as FeedbackScores;
+  
+  dimensions.forEach(dim => {
+    const total = feedbackList.reduce((sum, feedback) => sum + feedback.scores[dim], 0);
+    avgScores[dim] = total / feedbackList.length;
+  });
+
+  return avgScores;
+};
+
+const calculateSEI = (scores: FeedbackScores): number => {
+  const weights: Record<keyof FeedbackScores, number> = {
+    'Clarity & Organization': 0.30,
+    'Student Engagement': 0.25,
+    'Pedagogical Methods & Activities': 0.20,
+    'Content Delivery & Subject Mastery': 0.15,
+    'Perceived Learning Impact': 0.10
+  };
+
+  let sei = 0;
+  Object.entries(scores).forEach(([dimension, score]) => {
+    sei += score * weights[dimension as keyof FeedbackScores];
+  });
+
+  return sei;
+};
+
 export function makeServer({ environment = 'development' } = {}) {
   return createServer({
     environment,
@@ -44,6 +80,7 @@ export function makeServer({ environment = 'development' } = {}) {
       lecturer: Model,
       session: Model,
       feedback: Model,
+      questionnaire: Model,
     },
 
     factories: {
@@ -127,25 +164,23 @@ export function makeServer({ environment = 'development' } = {}) {
           ];
           return comments[Math.floor(Math.random() * comments.length)];
         }
+      }),
+
+      questionnaire: Factory.extend({
+        id() { return uuidv4(); },
+        name() { return 'Default Teaching Evaluation Questionnaire'; }
       })
     },
 
     seeds(server) {
-      // Create users
       server.createList('user', 4);
-      
-      // Create courses
       server.createList('course', 10);
-      
-      // Create lecturers
       server.createList('lecturer', 15);
-      
-      // Create sessions
       const sessions = server.createList('session', 50);
+      server.create('questionnaire');
       
-      // Create feedback for each session
       sessions.forEach(session => {
-        const feedbackCount = Math.floor(Math.random() * 50) + 150; // 150-200 feedback per session
+        const feedbackCount = Math.floor(Math.random() * 50) + 150;
         for (let i = 0; i < feedbackCount; i++) {
           server.create('feedback', { sessionId: session.id });
         }
@@ -155,48 +190,38 @@ export function makeServer({ environment = 'development' } = {}) {
     routes() {
       this.namespace = 'api';
 
-      // Auth routes
       this.post('/login', (schema, request) => {
         const { username, password } = JSON.parse(request.requestBody);
-        const user = schema.users.findBy({ username });
+        const user = schema.db.users.findBy({ username });
         
         if (user) {
           return {
             token: 'mock-jwt-token',
-            user: user.attrs
+            user: user
           };
         }
         
         return new Response(401, {}, { error: 'Invalid credentials' });
       });
 
-      this.get('/me', () => {
-        const userData = localStorage.getItem('tms-user');
-        if (userData) {
-          return JSON.parse(userData);
-        }
-        return new Response(401, {}, { error: 'Not authenticated' });
-      });
-
-      // CRUD routes
       this.resource('courses');
       this.resource('lecturers');
       this.resource('sessions');
       this.resource('feedback');
+      this.resource('questionnaires');
 
-      // Analytics routes
       this.get('/analytics/overview', (schema) => {
-        const sessions = schema.sessions.all();
-        const feedback = schema.feedback.all();
+        const sessions = schema.db.sessions;
+        const feedback = schema.db.feedback;
         
         let totalSEI = 0;
         let sessionCount = 0;
 
-        sessions.models.forEach(session => {
-          const sessionFeedback = feedback.models.filter(f => f.sessionId === session.id);
+        sessions.forEach((session: any) => {
+          const sessionFeedback = feedback.where({ sessionId: session.id });
           if (sessionFeedback.length > 0) {
-            const avgScores = this.calculateAverageScores(sessionFeedback);
-            const sei = this.calculateSEI(avgScores);
+            const avgScores = calculateAverageScores(sessionFeedback);
+            const sei = calculateSEI(avgScores);
             totalSEI += sei;
             sessionCount++;
           }
@@ -204,28 +229,34 @@ export function makeServer({ environment = 'development' } = {}) {
 
         return {
           averageSEI: sessionCount > 0 ? totalSEI / sessionCount : 0,
-          totalSessions: sessions.models.length,
-          totalFeedback: feedback.models.length,
+          totalSessions: sessions.length,
+          totalFeedback: feedback.length,
           responseRate: 0.85
         };
       });
 
       this.get('/analytics/session/:id', (schema, request) => {
         const sessionId = request.params.id;
-        const sessionFeedback = schema.feedback.where({ sessionId });
+        const sessionFeedback = schema.db.feedback.where({ sessionId });
         
         if (sessionFeedback.length === 0) {
           return {
             sessionId,
-            averageScores: {} as FeedbackScores,
+            averageScores: {
+              'Clarity & Organization': 0,
+              'Student Engagement': 0,
+              'Pedagogical Methods & Activities': 0,
+              'Content Delivery & Subject Mastery': 0,
+              'Perceived Learning Impact': 0
+            } as FeedbackScores,
             sei: 0,
             responseCount: 0,
             responseRate: 0
           };
         }
 
-        const avgScores = this.calculateAverageScores(sessionFeedback.models);
-        const sei = this.calculateSEI(avgScores);
+        const avgScores = calculateAverageScores(sessionFeedback);
+        const sei = calculateSEI(avgScores);
 
         return {
           sessionId,
@@ -245,43 +276,6 @@ export function makeServer({ environment = 'development' } = {}) {
         });
         return feedback;
       });
-    },
-
-    calculateAverageScores(feedbackList: any[]): FeedbackScores {
-      const dimensions = [
-        'Clarity & Organization',
-        'Student Engagement', 
-        'Pedagogical Methods & Activities',
-        'Content Delivery & Subject Mastery',
-        'Perceived Learning Impact'
-      ] as const;
-
-      const avgScores = {} as FeedbackScores;
-      
-      dimensions.forEach(dim => {
-        const total = feedbackList.reduce((sum, feedback) => sum + feedback.scores[dim], 0);
-        avgScores[dim] = total / feedbackList.length;
-      });
-
-      return avgScores;
-    },
-
-    calculateSEI(scores: FeedbackScores): number {
-      // Default weights
-      const weights: Record<keyof FeedbackScores, number> = {
-        'Clarity & Organization': 0.30,
-        'Student Engagement': 0.25,
-        'Pedagogical Methods & Activities': 0.20,
-        'Content Delivery & Subject Mastery': 0.15,
-        'Perceived Learning Impact': 0.10
-      };
-
-      let sei = 0;
-      Object.entries(scores).forEach(([dimension, score]) => {
-        sei += score * weights[dimension as keyof FeedbackScores];
-      });
-
-      return sei;
     }
   });
 }
