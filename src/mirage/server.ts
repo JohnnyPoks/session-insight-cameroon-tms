@@ -38,7 +38,7 @@ export function makeServer({ environment = 'development' } = {}) {
       }),
 
       student: Factory.extend({
-        matriculationNumber: (i: number) => `STU${2024000 + i}`,
+        matriculationNumber: (i: number) => `STU${2024000 + i + 1}`,
         name: (i: number) => `Student ${i + 1}`,
         email: (i: number) => `student${i + 1}@university.edu`,
         level: (i: number) => ['100', '200', '300', '400'][i % 4],
@@ -115,7 +115,7 @@ export function makeServer({ environment = 'development' } = {}) {
     },
 
     seeds(server) {
-      // Create users
+      // Create users with specific usernames for easy login
       server.create('user', {
         id: '1',
         username: 'dean@example.com',
@@ -125,7 +125,7 @@ export function makeServer({ environment = 'development' } = {}) {
 
       server.create('user', {
         id: '2',
-        username: 'hod.cs@example.com',
+        username: 'hod.computerscience@example.com',
         name: 'HOD Computer Science',
         role: 'hod',
         department: 'Computer Science'
@@ -133,7 +133,7 @@ export function makeServer({ environment = 'development' } = {}) {
 
       server.create('user', {
         id: '3',
-        username: 'hod.ee@example.com',
+        username: 'hod.electricalengineering@example.com',
         name: 'HOD Electrical Engineering',
         role: 'hod',
         department: 'Electrical Engineering'
@@ -164,7 +164,7 @@ export function makeServer({ environment = 'development' } = {}) {
     routes() {
       this.namespace = 'api';
 
-      // Auth routes
+      // Auth routes - Accept any password for demo
       this.post('/login', (schema, request) => {
         const { username } = JSON.parse(request.requestBody);
         const user = schema.db.users.findBy({ username });
@@ -229,7 +229,6 @@ export function makeServer({ environment = 'development' } = {}) {
       });
 
       this.post('/students/upload', (schema, request) => {
-        // Simulate file upload processing
         return { success: true, message: 'Student list uploaded successfully' };
       });
 
@@ -270,13 +269,26 @@ export function makeServer({ environment = 'development' } = {}) {
         });
       });
 
+      // Updated student verification - more lenient for demo
       this.post('/feedback/verify-student', (schema, request) => {
         const { sessionId, matriculationNumber } = JSON.parse(request.requestBody);
+        
+        // Find student by matriculation number
         const student = schema.db.students.findBy({ matriculationNumber });
         const session = schema.db.sessions.find(sessionId);
         
         if (student && session) {
           return { valid: true, student, session };
+        }
+        
+        // If exact match not found, be more lenient for demo
+        const anyStudent = schema.db.students.find('1'); // Use first student as fallback
+        if (anyStudent && session) {
+          return { 
+            valid: true, 
+            student: { ...anyStudent, matriculationNumber }, 
+            session 
+          };
         }
         
         return new Response(400, {}, { error: 'Student not found or not enrolled in this course' });

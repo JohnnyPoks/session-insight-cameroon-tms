@@ -77,13 +77,28 @@ const LoginPage: React.FC = () => {
             </Form.Item>
           </Form>
 
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <Text className="text-sm font-medium block mb-2">Demo Accounts:</Text>
-            <div className="space-y-1 text-xs">
-              <div><strong>Dean:</strong> dean@example.com</div>
-              <div><strong>HOD CS:</strong> hod.computerscience@example.com</div>
-              <div><strong>HOD EE:</strong> hod.electricalengineering@example.com</div>
-              <div><strong>Password:</strong> password (any value)</div>
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <Text className="text-sm font-medium block mb-2 text-blue-900">Demo Login Credentials:</Text>
+            <div className="space-y-2 text-sm text-blue-800">
+              <div className="flex justify-between">
+                <strong>Dean:</strong> 
+                <span>dean@example.com</span>
+              </div>
+              <div className="flex justify-between">
+                <strong>HOD CS:</strong> 
+                <span>hod.computerscience@example.com</span>
+              </div>
+              <div className="flex justify-between">
+                <strong>HOD EE:</strong> 
+                <span>hod.electricalengineering@example.com</span>
+              </div>
+              <div className="flex justify-between">
+                <strong>Password:</strong> 
+                <span className="text-green-700 font-medium">Any password works!</span>
+              </div>
+            </div>
+            <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
+              <strong>Student Feedback:</strong> Use matriculation numbers like STU2024001, STU2024002, etc.
             </div>
           </div>
         </Card>
