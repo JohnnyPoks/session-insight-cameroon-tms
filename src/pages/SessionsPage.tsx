@@ -1,12 +1,26 @@
 
 import React, { useState } from 'react';
-import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, message, Popconfirm } from 'antd';
-import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
+import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, TimePicker, message, Popconfirm } from 'antd';
+import { Calendar, Plus, Edit, Trash2, Users } from 'lucide-react';
 import { useGetSessionsQuery, useCreateSessionMutation, useUpdateSessionMutation, useDeleteSessionMutation, useGetCoursesQuery, useGetLecturersQuery } from '../api/apiSlice';
-import type { Session } from '../types';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
+
+interface Session {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  instructorName: string;
+  department: string;
+  date: string;
+  time: string;
+  studentCount: number;
+  status: 'scheduled' | 'open_for_feedback' | 'closed';
+  questionnaireId: string;
+  evaluationStart?: string;
+  evaluationEnd?: string;
+}
 
 const SessionsPage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -30,7 +44,8 @@ const SessionsPage: React.FC = () => {
     setEditingSession(session);
     form.setFieldsValue({
       ...session,
-      date: dayjs(session.date),
+      date: session.date ? dayjs(session.date) : null,
+      time: session.time ? dayjs(session.time, 'HH:mm') : null,
     });
     setIsModalVisible(true);
   };
@@ -48,8 +63,10 @@ const SessionsPage: React.FC = () => {
     try {
       const sessionData = {
         ...values,
-        date: values.date.toISOString(),
-        questionnaireId: 'default-questionnaire',
+        date: values.date ? values.date.toISOString() : new Date().toISOString(),
+        time: values.time ? values.time.format('HH:mm') : '10:00',
+        studentCount: parseInt(values.studentCount) || 0,
+        questionnaireId: 'default-questionnaire'
       };
 
       if (editingSession) {
@@ -73,7 +90,7 @@ const SessionsPage: React.FC = () => {
       key: 'course',
       render: (session: Session) => (
         <div>
-          <div className="font-medium">{session.courseCode}</div>
+          <div className="font-semibold">{session.courseCode}</div>
           <div className="text-sm text-gray-500">{session.courseName}</div>
         </div>
       ),
@@ -87,6 +104,9 @@ const SessionsPage: React.FC = () => {
       title: 'Department',
       dataIndex: 'department',
       key: 'department',
+      render: (department: string) => (
+        <Tag color="blue">{department}</Tag>
+      ),
     },
     {
       title: 'Date & Time',
@@ -102,6 +122,12 @@ const SessionsPage: React.FC = () => {
       title: 'Students',
       dataIndex: 'studentCount',
       key: 'studentCount',
+      render: (count: number) => (
+        <div className="flex items-center">
+          <Users className="w-4 h-4 mr-1" />
+          {count}
+        </div>
+      ),
     },
     {
       title: 'Status',
@@ -157,9 +183,9 @@ const SessionsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Calendar className="w-6 h-6" />
-            Sessions Management
+            Session Management
           </h1>
-          <p className="text-gray-600">Manage teaching sessions and evaluation windows</p>
+          <p className="text-gray-600">Schedule and manage teaching sessions</p>
         </div>
         <Button
           type="primary"
@@ -167,7 +193,7 @@ const SessionsPage: React.FC = () => {
           onClick={handleCreate}
           className="bg-primary-500 hover:bg-primary-600"
         >
-          Create Session
+          Schedule Session
         </Button>
       </div>
 
@@ -186,11 +212,11 @@ const SessionsPage: React.FC = () => {
       </Card>
 
       <Modal
-        title={editingSession ? 'Edit Session' : 'Create Session'}
+        title={editingSession ? 'Edit Session' : 'Schedule Session'}
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
-        width={800}
+        width={700}
       >
         <Form
           form={form}
@@ -201,36 +227,34 @@ const SessionsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item
               name="courseCode"
-              label="Course"
-              rules={[{ required: true, message: 'Please select a course' }]}
+              label="Course Code"
+              rules={[{ required: true, message: 'Please enter course code' }]}
             >
-              <Select placeholder="Select course">
-                {courses?.map(course => (
-                  <Option key={course.id} value={course.courseCode}>
-                    {course.courseCode} - {course.courseName}
-                  </Option>
-                ))}
-              </Select>
+              <Input placeholder="e.g., CS101" />
             </Form.Item>
 
             <Form.Item
               name="instructorName"
               label="Instructor"
-              rules={[{ required: true, message: 'Please select an instructor' }]}
+              rules={[{ required: true, message: 'Please enter instructor name' }]}
             >
-              <Select placeholder="Select instructor">
-                {lecturers?.map(lecturer => (
-                  <Option key={lecturer.id} value={lecturer.name}>
-                    {lecturer.name}
-                  </Option>
-                ))}
-              </Select>
+              <Input placeholder="Instructor name" />
             </Form.Item>
+          </div>
 
+          <Form.Item
+            name="courseName"
+            label="Course Name"
+            rules={[{ required: true, message: 'Please enter course name' }]}
+          >
+            <Input placeholder="Course name" />
+          </Form.Item>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Form.Item
               name="date"
               label="Date"
-              rules={[{ required: true, message: 'Please select a date' }]}
+              rules={[{ required: true, message: 'Please select date' }]}
             >
               <DatePicker className="w-full" />
             </Form.Item>
@@ -238,9 +262,9 @@ const SessionsPage: React.FC = () => {
             <Form.Item
               name="time"
               label="Time"
-              rules={[{ required: true, message: 'Please enter time' }]}
+              rules={[{ required: true, message: 'Please select time' }]}
             >
-              <Input placeholder="e.g., 10:00 AM" />
+              <TimePicker className="w-full" format="HH:mm" />
             </Form.Item>
 
             <Form.Item
@@ -249,6 +273,22 @@ const SessionsPage: React.FC = () => {
               rules={[{ required: true, message: 'Please enter student count' }]}
             >
               <Input type="number" placeholder="Number of students" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="department"
+              label="Department"
+              rules={[{ required: true, message: 'Please select department' }]}
+            >
+              <Select placeholder="Select department">
+                <Option value="Computer Science">Computer Science</Option>
+                <Option value="Electrical Engineering">Electrical Engineering</Option>
+                <Option value="Mathematics">Mathematics</Option>
+                <Option value="Physics">Physics</Option>
+                <Option value="Chemistry">Chemistry</Option>
+              </Select>
             </Form.Item>
 
             <Form.Item
@@ -273,7 +313,7 @@ const SessionsPage: React.FC = () => {
               htmlType="submit"
               className="bg-primary-500 hover:bg-primary-600"
             >
-              {editingSession ? 'Update' : 'Create'} Session
+              {editingSession ? 'Update' : 'Schedule'} Session
             </Button>
           </div>
         </Form>

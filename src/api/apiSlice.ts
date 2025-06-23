@@ -1,7 +1,91 @@
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../app/store';
-import type { User, Course, Lecturer, Session, Feedback, SessionAnalytics, Questionnaire } from '../types';
+
+// Define basic types locally to avoid circular dependencies
+interface User {
+  id: string;
+  username: string;
+  role: 'dean' | 'hod' | 'student';
+  department?: string;
+  name: string;
+}
+
+interface Course {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  department: string;
+  credits: number;
+}
+
+interface Lecturer {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  title: string;
+}
+
+interface Session {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  instructorName: string;
+  department: string;
+  date: string;
+  time: string;
+  studentCount: number;
+  status: 'scheduled' | 'open_for_feedback' | 'closed';
+  questionnaireId: string;
+  evaluationStart?: string;
+  evaluationEnd?: string;
+}
+
+interface FeedbackScores {
+  'Clarity & Organization': number;
+  'Student Engagement': number;
+  'Pedagogical Methods & Activities': number;
+  'Content Delivery & Subject Mastery': number;
+  'Perceived Learning Impact': number;
+}
+
+interface Feedback {
+  id: string;
+  sessionId: string;
+  studentId: string;
+  submissionTimestamp: string;
+  scores: FeedbackScores;
+  openEndedComment: string;
+}
+
+interface Question {
+  id: string;
+  dimension: keyof FeedbackScores;
+  text: string;
+  type: 'likert' | 'open_ended';
+}
+
+interface Questionnaire {
+  id: string;
+  name: string;
+  questions: Question[];
+}
+
+interface SessionAnalytics {
+  sessionId: string;
+  averageScores: FeedbackScores;
+  sei: number;
+  responseCount: number;
+  responseRate: number;
+}
+
+interface OverviewAnalytics {
+  averageSEI: number;
+  totalSessions: number;
+  totalFeedback: number;
+  responseRate: number;
+}
 
 export const apiSlice = createApi({
   reducerPath: 'api',
@@ -157,12 +241,7 @@ export const apiSlice = createApi({
     }),
 
     // Analytics
-    getOverviewAnalytics: builder.query<{
-      averageSEI: number;
-      totalSessions: number;
-      totalFeedback: number;
-      responseRate: number;
-    }, void>({
+    getOverviewAnalytics: builder.query<OverviewAnalytics, void>({
       query: () => '/analytics/overview',
       providesTags: ['Analytics'],
     }),
