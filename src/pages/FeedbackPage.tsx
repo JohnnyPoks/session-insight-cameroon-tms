@@ -1,21 +1,33 @@
 
 import React, { useState } from 'react';
-import { Card, Form, Rate, Input, Button, Typography, message, Spin } from 'antd';
+import { Card, Form, Rate, Input, Button, Typography, message, Spin, Steps } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, Send } from 'lucide-react';
-import { useGetSessionQuery, useSubmitFeedbackMutation } from '../api/apiSlice';
-import type { FeedbackScores } from '../types';
+import { FileText, Send, User, CheckCircle } from 'lucide-react';
+import { useGetSessionQuery, useSubmitFeedbackMutation, useVerifyStudentMutation } from '../api/apiSlice';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
+const { Step } = Steps;
+
+interface FeedbackScores {
+  'Clarity & Organization': number;
+  'Student Engagement': number;
+  'Pedagogical Methods & Activities': number;
+  'Content Delivery & Subject Mastery': number;
+  'Perceived Learning Impact': number;
+}
 
 const FeedbackPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const [verificationForm] = Form.useForm();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [verifiedStudent, setVerifiedStudent] = useState<any>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const { data: session, isLoading } = useGetSessionQuery(sessionId!);
+  const [verifyStudent, { isLoading: verifying }] = useVerifyStudentMutation();
   const [submitFeedback, { isLoading: submitting }] = useSubmitFeedbackMutation();
 
   const dimensions = [
@@ -46,6 +58,21 @@ const FeedbackPage: React.FC = () => {
     }
   ];
 
+  const handleVerification = async (values: any) => {
+    try {
+      const result = await verifyStudent({
+        sessionId: sessionId!,
+        matriculationNumber: values.matriculationNumber
+      }).unwrap();
+
+      setVerifiedStudent(result.student);
+      setCurrentStep(1);
+      message.success('Student verified successfully!');
+    } catch (error) {
+      message.error('Student verification failed. Please check your matriculation number.');
+    }
+  };
+
   const handleSubmit = async (values: any) => {
     try {
       const scores: FeedbackScores = {
@@ -60,7 +87,7 @@ const FeedbackPage: React.FC = () => {
         sessionId: sessionId!,
         scores,
         openEndedComment: values.comment || '',
-        studentId: `student-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        studentId: verifiedStudent.id
       }).unwrap();
 
       setSubmitted(true);
@@ -84,7 +111,7 @@ const FeedbackPage: React.FC = () => {
         <Card className="w-full max-w-md text-center shadow-lg">
           <div className="mb-6">
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Send className="w-8 h-8 text-white" />
+              <CheckCircle className="w-8 h-8 text-white" />
             </div>
             <Title level={3} className="text-green-600">Feedback Submitted!</Title>
             <Text className="text-gray-600">
@@ -134,62 +161,121 @@ const FeedbackPage: React.FC = () => {
         )}
 
         <Card className="shadow-lg">
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <div className="space-y-8">
-              <div>
-                <Title level={4} className="mb-6">Please rate the following aspects (1 = Poor, 5 = Excellent)</Title>
-                
-                {dimensions.map((dimension, index) => (
-                  <div key={dimension.key} className="mb-8 p-4 bg-gray-50 rounded-lg">
-                    <div className="mb-3">
-                      <Text strong className="block mb-1">{dimension.label}</Text>
-                      <Text className="text-sm text-gray-600">{dimension.description}</Text>
-                    </div>
-                    <Form.Item
-                      name={dimension.key}
-                      initialValue={3}
-                      rules={[{ required: true, message: `Please rate ${dimension.label}` }]}
-                    >
-                      <Rate 
-                        count={5}
-                        className="text-xl"
-                        character="★"
+          <Steps current={currentStep} className="mb-8">
+            <Step title="Student Verification" icon={<User className="w-4 h-4" />} />
+            <Step title="Session Evaluation" icon={<FileText className="w-4 h-4" />} />
+          </Steps>
+
+          {currentStep === 0 && (
+            <div>
+              <Title level={4} className="mb-4">Student Verification</Title>
+              <Text className="text-gray-600 mb-6 block">
+                Please enter your matriculation number to verify your enrollment in this course.
+              </Text>
+              
+              <Form
+                form={verificationForm}
+                layout="vertical"
+                onFinish={handleVerification}
+              >
+                <Form.Item
+                  name="matriculationNumber"
+                  label="Matriculation Number"
+                  rules={[{ required: true, message: 'Please enter your matriculation number' }]}
+                >
+                  <Input 
+                    placeholder="e.g., STU2024001" 
+                    size="large"
+                    className="text-center"
+                  />
+                </Form.Item>
+
+                <div className="text-center">
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={verifying}
+                    className="bg-primary-500 hover:bg-primary-600 px-8"
+                  >
+                    Verify Student
+                  </Button>
+                </div>
+              </Form>
+            </div>
+          )}
+
+          {currentStep === 1 && (
+            <div>
+              {verifiedStudent && (
+                <div className="bg-green-50 p-4 rounded-lg mb-6">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-medium">
+                      Verified: {verifiedStudent.name} ({verifiedStudent.matriculationNumber})
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                <div className="space-y-8">
+                  <div>
+                    <Title level={4} className="mb-6">Please rate the following aspects (1 = Poor, 5 = Excellent)</Title>
+                    
+                    {dimensions.map((dimension, index) => (
+                      <div key={dimension.key} className="mb-8 p-4 bg-gray-50 rounded-lg">
+                        <div className="mb-3">
+                          <Text strong className="block mb-1">{dimension.label}</Text>
+                          <Text className="text-sm text-gray-600">{dimension.description}</Text>
+                        </div>
+                        <Form.Item
+                          name={dimension.key}
+                          initialValue={3}
+                          rules={[{ required: true, message: `Please rate ${dimension.label}` }]}
+                        >
+                          <Rate 
+                            count={5}
+                            className="text-xl"
+                            character="★"
+                          />
+                        </Form.Item>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <Title level={4} className="mb-4">Additional Comments</Title>
+                    <Form.Item name="comment">
+                      <TextArea
+                        rows={4}
+                        placeholder="Please share any additional thoughts or suggestions to help improve future sessions..."
+                        className="resize-none"
                       />
                     </Form.Item>
                   </div>
-                ))}
-              </div>
 
-              <div>
-                <Title level={4} className="mb-4">Additional Comments</Title>
-                <Form.Item name="comment">
-                  <TextArea
-                    rows={4}
-                    placeholder="Please share any additional thoughts or suggestions to help improve future sessions..."
-                    className="resize-none"
-                  />
-                </Form.Item>
-              </div>
-
-              <div className="text-center pt-6">
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  loading={submitting}
-                  icon={<Send className="w-4 h-4" />}
-                  className="bg-primary-500 hover:bg-primary-600 h-12 px-8"
-                >
-                  Submit Feedback
-                </Button>
-              </div>
+                  <div className="text-center pt-6">
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      size="large"
+                      loading={submitting}
+                      icon={<Send className="w-4 h-4" />}
+                      className="bg-primary-500 hover:bg-primary-600 h-12 px-8"
+                    >
+                      Submit Feedback
+                    </Button>
+                  </div>
+                </div>
+              </Form>
             </div>
-          </Form>
+          )}
         </Card>
 
         <div className="text-center mt-6">
           <Text className="text-sm text-gray-500">
-            Your feedback is anonymous and will be used to improve teaching quality.
+            Your feedback is linked to your student record but will be anonymized in reports to instructors.
           </Text>
         </div>
       </div>

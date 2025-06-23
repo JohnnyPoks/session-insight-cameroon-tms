@@ -1,5 +1,5 @@
 
-import { createServer, Model, Factory, belongsTo, hasMany } from 'miragejs';
+import { createServer, Model, Factory } from 'miragejs';
 
 export function makeServer({ environment = 'development' } = {}) {
   return createServer({
@@ -9,6 +9,7 @@ export function makeServer({ environment = 'development' } = {}) {
       user: Model,
       course: Model,
       lecturer: Model,
+      student: Model,
       session: Model,
       feedback: Model,
       questionnaire: Model,
@@ -16,10 +17,10 @@ export function makeServer({ environment = 'development' } = {}) {
 
     factories: {
       user: Factory.extend({
-        username: () => 'dean@example.com',
-        name: () => 'Dean Administrator',
-        role: () => 'dean',
-        department: () => null,
+        username: (i: number) => `user${i}@example.com`,
+        name: (i: number) => `User ${i}`,
+        role: () => 'hod',
+        department: () => 'Computer Science',
       }),
 
       course: Factory.extend({
@@ -33,25 +34,33 @@ export function makeServer({ environment = 'development' } = {}) {
         name: (i: number) => `Dr. Lecturer ${i + 1}`,
         email: (i: number) => `lecturer${i + 1}@university.edu`,
         department: () => 'Computer Science',
-        title: () => 'Associate Professor',
+        title: () => 'Dr.',
+      }),
+
+      student: Factory.extend({
+        matriculationNumber: (i: number) => `STU${2024000 + i}`,
+        name: (i: number) => `Student ${i + 1}`,
+        email: (i: number) => `student${i + 1}@university.edu`,
+        level: (i: number) => ['100', '200', '300', '400'][i % 4],
+        coursesRegistered: () => ['1', '2'],
       }),
 
       session: Factory.extend({
         courseCode: (i: number) => `CS${100 + (i % 10)}`,
-        courseName: (i: number) => `Introduction to Programming ${i + 1}`,
-        instructorName: (i: number) => `Dr. Instructor ${i + 1}`,
+        courseName: (i: number) => `Course ${(i % 10) + 1}`,
+        instructorName: (i: number) => `Dr. Instructor ${(i % 15) + 1}`,
         department: () => 'Computer Science',
         date: () => new Date().toISOString(),
-        time: () => '10:00 AM',
+        time: () => '10:00',
         studentCount: () => Math.floor(Math.random() * 50) + 20,
         status: () => 'open_for_feedback',
-        questionnaireId: () => 'default-questionnaire',
+        questionnaireId: () => '1',
       }),
 
       feedback: Factory.extend({
-        sessionId: (i: number) => `session-${i + 1}`,
-        studentId: () => `student-${Math.random().toString(36).substr(2, 9)}`,
-        submittedAt: () => new Date().toISOString(),
+        sessionId: (i: number) => `${(i % 50) + 1}`,
+        studentId: (i: number) => `${(i % 100) + 1}`,
+        submissionTimestamp: () => new Date().toISOString(),
         scores: () => ({
           'Clarity & Organization': Math.floor(Math.random() * 5) + 1,
           'Student Engagement': Math.floor(Math.random() * 5) + 1,
@@ -63,7 +72,7 @@ export function makeServer({ environment = 'development' } = {}) {
       }),
 
       questionnaire: Factory.extend({
-        name: () => 'Default Teaching Evaluation',
+        name: () => 'Standard Teaching Evaluation',
         questions: () => [
           {
             id: '1',
@@ -76,6 +85,30 @@ export function makeServer({ environment = 'development' } = {}) {
             dimension: 'Student Engagement',
             text: 'How engaging was the instructor?',
             type: 'likert'
+          },
+          {
+            id: '3',
+            dimension: 'Pedagogical Methods & Activities',
+            text: 'How effective were the teaching methods?',
+            type: 'likert'
+          },
+          {
+            id: '4',
+            dimension: 'Content Delivery & Subject Mastery',
+            text: 'How well did the instructor demonstrate subject mastery?',
+            type: 'likert'
+          },
+          {
+            id: '5',
+            dimension: 'Perceived Learning Impact',
+            text: 'How much did you learn from this session?',
+            type: 'likert'
+          },
+          {
+            id: '6',
+            dimension: 'General',
+            text: 'Please provide additional comments.',
+            type: 'open_ended'
           }
         ],
       }),
@@ -92,7 +125,7 @@ export function makeServer({ environment = 'development' } = {}) {
 
       server.create('user', {
         id: '2',
-        username: 'hod.computerscience@example.com',
+        username: 'hod.cs@example.com',
         name: 'HOD Computer Science',
         role: 'hod',
         department: 'Computer Science'
@@ -100,7 +133,7 @@ export function makeServer({ environment = 'development' } = {}) {
 
       server.create('user', {
         id: '3',
-        username: 'hod.electricalengineering@example.com',
+        username: 'hod.ee@example.com',
         name: 'HOD Electrical Engineering',
         role: 'hod',
         department: 'Electrical Engineering'
@@ -112,12 +145,15 @@ export function makeServer({ environment = 'development' } = {}) {
       // Create lecturers
       server.createList('lecturer', 15);
       
+      // Create students
+      server.createList('student', 100);
+      
       // Create sessions
       server.createList('session', 50);
       
       // Create questionnaires
       server.create('questionnaire', {
-        id: 'default-questionnaire',
+        id: '1',
         name: 'Standard Teaching Evaluation'
       });
       
@@ -187,6 +223,16 @@ export function makeServer({ environment = 'development' } = {}) {
         return new Response(204);
       });
 
+      // Student routes
+      this.get('/students', (schema) => {
+        return schema.db.students;
+      });
+
+      this.post('/students/upload', (schema, request) => {
+        // Simulate file upload processing
+        return { success: true, message: 'Student list uploaded successfully' };
+      });
+
       // Session routes
       this.get('/sessions', (schema) => {
         return schema.db.sessions;
@@ -222,6 +268,18 @@ export function makeServer({ environment = 'development' } = {}) {
           id: Math.random().toString(36).substr(2, 9),
           submissionTimestamp: new Date().toISOString()
         });
+      });
+
+      this.post('/feedback/verify-student', (schema, request) => {
+        const { sessionId, matriculationNumber } = JSON.parse(request.requestBody);
+        const student = schema.db.students.findBy({ matriculationNumber });
+        const session = schema.db.sessions.find(sessionId);
+        
+        if (student && session) {
+          return { valid: true, student, session };
+        }
+        
+        return new Response(400, {}, { error: 'Student not found or not enrolled in this course' });
       });
 
       // Questionnaire routes

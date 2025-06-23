@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -19,6 +18,7 @@ import LecturersPage from './pages/LecturersPage';
 import QuestionnairesPage from './pages/QuestionnairesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SystemConfigPage from './pages/SystemConfigPage';
+import StudentsPage from './pages/StudentsPage';
 
 // Start Mirage server in development
 if (import.meta.env.DEV) {
@@ -57,6 +57,7 @@ const AppContent: React.FC = () => {
                 <Route path="/sessions" element={<AppLayout><SessionsPage /></AppLayout>} />
                 <Route path="/courses" element={<AppLayout><CoursesPage /></AppLayout>} />
                 <Route path="/lecturers" element={<AppLayout><LecturersPage /></AppLayout>} />
+                <Route path="/students" element={<AppLayout><StudentsPage /></AppLayout>} />
                 <Route path="/questionnaires" element={<AppLayout><QuestionnairesPage /></AppLayout>} />
                 <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
                 <Route path="/system-config" element={<AppLayout><SystemConfigPage /></AppLayout>} />
