@@ -1,5 +1,5 @@
 
-import { createServer, Model, Factory } from 'miragejs';
+import { createServer, Model, Factory, Response } from 'miragejs';
 
 export function makeServer({ environment = 'development' } = {}) {
   return createServer({
@@ -115,7 +115,7 @@ export function makeServer({ environment = 'development' } = {}) {
     },
 
     seeds(server) {
-      // Create users with specific usernames for easy login
+      // Create predefined users for testing
       server.create('user', {
         id: '1',
         username: 'dean@example.com',
@@ -145,7 +145,7 @@ export function makeServer({ environment = 'development' } = {}) {
       // Create lecturers
       server.createList('lecturer', 15);
       
-      // Create students
+      // Create students with specific matriculation numbers for testing
       server.createList('student', 100);
       
       // Create sessions
@@ -164,18 +164,28 @@ export function makeServer({ environment = 'development' } = {}) {
     routes() {
       this.namespace = 'api';
 
-      // Auth routes - Accept any password for demo
+      // Auth routes - Accept any password for demo purposes
       this.post('/login', (schema, request) => {
         const { username } = JSON.parse(request.requestBody);
+        console.log('Login attempt for username:', username);
+        
         const user = schema.db.users.findBy({ username });
+        console.log('Found user:', user);
         
         if (user) {
           return {
-            user,
-            token: 'mock-jwt-token'
+            user: {
+              id: user.id,
+              username: user.username,
+              name: user.name,
+              role: user.role,
+              department: user.department
+            },
+            token: 'mock-jwt-token-' + user.id
           };
         }
         
+        console.log('User not found, returning 401');
         return new Response(401, {}, { error: 'Invalid credentials' });
       });
 
@@ -229,6 +239,7 @@ export function makeServer({ environment = 'development' } = {}) {
       });
 
       this.post('/students/upload', (schema, request) => {
+        console.log('Student upload request received');
         return { success: true, message: 'Student list uploaded successfully' };
       });
 
@@ -262,6 +273,7 @@ export function makeServer({ environment = 'development' } = {}) {
       // Feedback routes
       this.post('/feedback/submit', (schema, request) => {
         const attrs = JSON.parse(request.requestBody);
+        console.log('Feedback submission received:', attrs);
         return schema.db.feedback.insert({
           ...attrs,
           id: Math.random().toString(36).substr(2, 9),
@@ -269,28 +281,40 @@ export function makeServer({ environment = 'development' } = {}) {
         });
       });
 
-      // Updated student verification - more lenient for demo
+      // Student verification - flexible for demo
       this.post('/feedback/verify-student', (schema, request) => {
         const { sessionId, matriculationNumber } = JSON.parse(request.requestBody);
+        console.log('Student verification for:', { sessionId, matriculationNumber });
         
-        // Find student by matriculation number
-        const student = schema.db.students.findBy({ matriculationNumber });
+        // Find student by matriculation number or create a demo student
+        let student = schema.db.students.findBy({ matriculationNumber });
         const session = schema.db.sessions.find(sessionId);
         
-        if (student && session) {
-          return { valid: true, student, session };
+        if (!student) {
+          // For demo purposes, accept any matriculation number that starts with STU
+          if (matriculationNumber.startsWith('STU')) {
+            student = {
+              id: Math.random().toString(36).substr(2, 9),
+              matriculationNumber: matriculationNumber,
+              name: `Demo Student ${matriculationNumber}`,
+              email: `${matriculationNumber.toLowerCase()}@student.edu`,
+              level: '200',
+              coursesRegistered: ['1']
+            };
+            console.log('Created demo student:', student);
+          }
         }
         
-        // If exact match not found, be more lenient for demo
-        const anyStudent = schema.db.students.find('1'); // Use first student as fallback
-        if (anyStudent && session) {
+        if (student && session) {
+          console.log('Student verification successful');
           return { 
             valid: true, 
-            student: { ...anyStudent, matriculationNumber }, 
-            session 
+            student: student, 
+            session: session 
           };
         }
         
+        console.log('Student verification failed');
         return new Response(400, {}, { error: 'Student not found or not enrolled in this course' });
       });
 

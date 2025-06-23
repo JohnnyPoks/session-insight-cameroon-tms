@@ -2,6 +2,84 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../app/store';
 
+// Simple interface definitions
+interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+interface LoginResponse {
+  user: {
+    id: string;
+    username: string;
+    name: string;
+    role: string;
+    department?: string;
+  };
+  token: string;
+}
+
+interface Course {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  department: string;
+  credits: number;
+}
+
+interface Lecturer {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  title: string;
+}
+
+interface Student {
+  id: string;
+  matriculationNumber: string;
+  name: string;
+  email: string;
+  level: string;
+  coursesRegistered: string[];
+}
+
+interface Session {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  instructorName: string;
+  department: string;
+  date: string;
+  time: string;
+  studentCount: number;
+  status: string;
+  questionnaireId: string;
+}
+
+interface FeedbackSubmission {
+  sessionId: string;
+  scores: Record<string, number>;
+  openEndedComment: string;
+  studentId: string;
+}
+
+interface StudentVerification {
+  sessionId: string;
+  matriculationNumber: string;
+}
+
+interface Questionnaire {
+  id: string;
+  name: string;
+  questions: Array<{
+    id: string;
+    dimension: string;
+    text: string;
+    type: string;
+  }>;
+}
+
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
@@ -17,7 +95,7 @@ export const apiSlice = createApi({
   tagTypes: ['User', 'Course', 'Lecturer', 'Student', 'Session', 'Feedback', 'Analytics', 'Questionnaire'],
   endpoints: (builder) => ({
     // Auth
-    login: builder.mutation<any, any>({
+    login: builder.mutation<LoginResponse, LoginRequest>({
       query: (credentials) => ({
         url: '/login',
         method: 'POST',
@@ -26,11 +104,11 @@ export const apiSlice = createApi({
     }),
 
     // Courses
-    getCourses: builder.query<any[], void>({
+    getCourses: builder.query<Course[], void>({
       query: () => '/courses',
       providesTags: ['Course'],
     }),
-    createCourse: builder.mutation<any, any>({
+    createCourse: builder.mutation<Course, Partial<Course>>({
       query: (course) => ({
         url: '/courses',
         method: 'POST',
@@ -38,7 +116,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Course'],
     }),
-    updateCourse: builder.mutation<any, any>({
+    updateCourse: builder.mutation<Course, { id: string; data: Partial<Course> }>({
       query: ({ id, data }) => ({
         url: `/courses/${id}`,
         method: 'PUT',
@@ -46,7 +124,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Course'],
     }),
-    deleteCourse: builder.mutation<any, string>({
+    deleteCourse: builder.mutation<void, string>({
       query: (id) => ({
         url: `/courses/${id}`,
         method: 'DELETE',
@@ -55,11 +133,11 @@ export const apiSlice = createApi({
     }),
 
     // Lecturers
-    getLecturers: builder.query<any[], void>({
+    getLecturers: builder.query<Lecturer[], void>({
       query: () => '/lecturers',
       providesTags: ['Lecturer'],
     }),
-    createLecturer: builder.mutation<any, any>({
+    createLecturer: builder.mutation<Lecturer, Partial<Lecturer>>({
       query: (lecturer) => ({
         url: '/lecturers',
         method: 'POST',
@@ -67,7 +145,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Lecturer'],
     }),
-    updateLecturer: builder.mutation<any, any>({
+    updateLecturer: builder.mutation<Lecturer, { id: string; data: Partial<Lecturer> }>({
       query: ({ id, data }) => ({
         url: `/lecturers/${id}`,
         method: 'PUT',
@@ -75,7 +153,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Lecturer'],
     }),
-    deleteLecturer: builder.mutation<any, string>({
+    deleteLecturer: builder.mutation<void, string>({
       query: (id) => ({
         url: `/lecturers/${id}`,
         method: 'DELETE',
@@ -84,11 +162,11 @@ export const apiSlice = createApi({
     }),
 
     // Students
-    getStudents: builder.query<any[], void>({
+    getStudents: builder.query<Student[], void>({
       query: () => '/students',
       providesTags: ['Student'],
     }),
-    uploadStudentList: builder.mutation<any, any>({
+    uploadStudentList: builder.mutation<{ success: boolean; message: string }, { courseId: string; file: File }>({
       query: ({ courseId, file }) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -103,15 +181,15 @@ export const apiSlice = createApi({
     }),
 
     // Sessions
-    getSessions: builder.query<any[], void>({
+    getSessions: builder.query<Session[], void>({
       query: () => '/sessions',
       providesTags: ['Session'],
     }),
-    getSession: builder.query<any, string>({
+    getSession: builder.query<Session, string>({
       query: (id) => `/sessions/${id}`,
       providesTags: ['Session'],
     }),
-    createSession: builder.mutation<any, any>({
+    createSession: builder.mutation<Session, Partial<Session>>({
       query: (session) => ({
         url: '/sessions',
         method: 'POST',
@@ -119,7 +197,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Session'],
     }),
-    updateSession: builder.mutation<any, any>({
+    updateSession: builder.mutation<Session, { id: string; data: Partial<Session> }>({
       query: ({ id, data }) => ({
         url: `/sessions/${id}`,
         method: 'PUT',
@@ -127,7 +205,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Session'],
     }),
-    deleteSession: builder.mutation<any, string>({
+    deleteSession: builder.mutation<void, string>({
       query: (id) => ({
         url: `/sessions/${id}`,
         method: 'DELETE',
@@ -136,7 +214,7 @@ export const apiSlice = createApi({
     }),
 
     // Feedback
-    submitFeedback: builder.mutation<any, any>({
+    submitFeedback: builder.mutation<{ success: boolean }, FeedbackSubmission>({
       query: (feedback) => ({
         url: '/feedback/submit',
         method: 'POST',
@@ -144,7 +222,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Feedback', 'Analytics'],
     }),
-    verifyStudent: builder.mutation<any, any>({
+    verifyStudent: builder.mutation<{ valid: boolean; student: Student; session: Session }, StudentVerification>({
       query: ({ sessionId, matriculationNumber }) => ({
         url: '/feedback/verify-student',
         method: 'POST',
@@ -153,11 +231,11 @@ export const apiSlice = createApi({
     }),
 
     // Questionnaires
-    getQuestionnaires: builder.query<any[], void>({
+    getQuestionnaires: builder.query<Questionnaire[], void>({
       query: () => '/questionnaires',
       providesTags: ['Questionnaire'],
     }),
-    createQuestionnaire: builder.mutation<any, any>({
+    createQuestionnaire: builder.mutation<Questionnaire, Partial<Questionnaire>>({
       query: (questionnaire) => ({
         url: '/questionnaires',
         method: 'POST',
@@ -165,7 +243,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Questionnaire'],
     }),
-    updateQuestionnaire: builder.mutation<any, any>({
+    updateQuestionnaire: builder.mutation<Questionnaire, { id: string; data: Partial<Questionnaire> }>({
       query: ({ id, data }) => ({
         url: `/questionnaires/${id}`,
         method: 'PUT',
@@ -173,7 +251,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Questionnaire'],
     }),
-    deleteQuestionnaire: builder.mutation<any, string>({
+    deleteQuestionnaire: builder.mutation<void, string>({
       query: (id) => ({
         url: `/questionnaires/${id}`,
         method: 'DELETE',
@@ -182,11 +260,22 @@ export const apiSlice = createApi({
     }),
 
     // Analytics
-    getOverviewAnalytics: builder.query<any, void>({
+    getOverviewAnalytics: builder.query<{
+      averageSEI: number;
+      totalSessions: number;
+      totalFeedback: number;
+      responseRate: number;
+    }, void>({
       query: () => '/analytics/overview',
       providesTags: ['Analytics'],
     }),
-    getSessionAnalytics: builder.query<any, string>({
+    getSessionAnalytics: builder.query<{
+      sessionId: string;
+      averageScores: Record<string, number>;
+      sei: number;
+      responseCount: number;
+      responseRate: number;
+    }, string>({
       query: (sessionId) => `/analytics/session/${sessionId}`,
       providesTags: ['Analytics'],
     }),
