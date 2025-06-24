@@ -486,12 +486,12 @@ export function makeServer({ environment = 'development' } = {}) {
       this.get('/analytics/overview', (schema, request) => {
         const { department, instructor, course, dateRange } = request.queryParams;
         
+        let sessions = schema.db.sessions;
         let feedback = schema.db.feedback;
-        const sessions = schema.db.sessions;
         
         // Apply filters if provided
         if (department && department !== 'all') {
-          const filteredSessions = sessions.where({ department });
+          const filteredSessions = sessions.filter(s => s.department === department);
           const sessionIds = filteredSessions.map(s => s.id);
           feedback = feedback.filter(f => sessionIds.includes(f.sessionId));
         }
@@ -515,7 +515,7 @@ export function makeServer({ environment = 'development' } = {}) {
 
       this.get('/analytics/session/:sessionId', (schema, request) => {
         const sessionId = request.params.sessionId;
-        const sessionFeedback = schema.db.feedback.where({ sessionId });
+        const sessionFeedback = schema.db.feedback.filter(f => f.sessionId === sessionId);
         
         if (sessionFeedback.length === 0) {
           return {

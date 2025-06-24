@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { Card, Row, Col, Statistic, Typography, Progress, Table, Tag, DatePicker, Select, Button, Space } from 'antd';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, DoughnutChart, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, Calendar, FileText, Building, GraduationCap, Award, Download } from 'lucide-react';
 import { useGetOverviewAnalyticsQuery, useGetSessionsQuery, useGetCoursesQuery, useGetLecturersQuery } from '../../api/apiSlice';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -13,7 +13,7 @@ const DeanDashboard: React.FC = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedInstructor, setSelectedInstructor] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
-  const [dateRange, setDateRange] = useState([]);
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
 
   const { data: analytics, isLoading: analyticsLoading } = useGetOverviewAnalyticsQuery();
   const { data: sessions, isLoading: sessionsLoading } = useGetSessionsQuery();

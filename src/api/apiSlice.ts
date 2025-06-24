@@ -25,9 +25,20 @@ export const apiSlice = createApi({
       }),
     }),
 
+    register: builder.mutation({
+      query: (userData) => ({
+        url: '/register',
+        method: 'POST',
+        body: userData,
+      }),
+    }),
+
     // Courses
     getCourses: builder.query({
-      query: () => '/courses',
+      query: (params = {}) => ({
+        url: '/courses',
+        params,
+      }),
       providesTags: ['Course'],
     }),
     createCourse: builder.mutation({
@@ -56,7 +67,10 @@ export const apiSlice = createApi({
 
     // Lecturers
     getLecturers: builder.query({
-      query: () => '/lecturers',
+      query: (params = {}) => ({
+        url: '/lecturers',
+        params,
+      }),
       providesTags: ['Lecturer'],
     }),
     createLecturer: builder.mutation({
@@ -85,7 +99,10 @@ export const apiSlice = createApi({
 
     // Students
     getStudents: builder.query({
-      query: () => '/students',
+      query: (params = {}) => ({
+        url: '/students',
+        params,
+      }),
       providesTags: ['Student'],
     }),
     uploadStudentList: builder.mutation({
@@ -105,7 +122,10 @@ export const apiSlice = createApi({
 
     // Sessions
     getSessions: builder.query({
-      query: () => '/sessions',
+      query: (params = {}) => ({
+        url: '/sessions',
+        params,
+      }),
       providesTags: ['Session'],
     }),
     getSession: builder.query({
@@ -155,7 +175,10 @@ export const apiSlice = createApi({
 
     // Questionnaires
     getQuestionnaires: builder.query({
-      query: () => '/questionnaires',
+      query: (params = {}) => ({
+        url: '/questionnaires',
+        params,
+      }),
       providesTags: ['Questionnaire'],
     }),
     createQuestionnaire: builder.mutation({
@@ -184,18 +207,31 @@ export const apiSlice = createApi({
 
     // Analytics
     getOverviewAnalytics: builder.query({
-      query: () => '/analytics/overview',
+      query: (params = {}) => ({
+        url: '/analytics/overview',
+        params,
+      }),
       providesTags: ['Analytics'],
     }),
     getSessionAnalytics: builder.query({
       query: (sessionId) => `/analytics/session/${sessionId}`,
       providesTags: ['Analytics'],
     }),
+
+    // SEI Weights
+    saveSEIWeights: builder.mutation({
+      query: (weights) => ({
+        url: '/sei-weights',
+        method: 'POST',
+        body: weights,
+      }),
+    }),
   }),
 });
 
 export const {
   useLoginMutation,
+  useRegisterMutation,
   useGetCoursesQuery,
   useCreateCourseMutation,
   useUpdateCourseMutation,
@@ -219,4 +255,5 @@ export const {
   useDeleteQuestionnaireMutation,
   useGetOverviewAnalyticsQuery,
   useGetSessionAnalyticsQuery,
+  useSaveSEIWeightsMutation,
 } = apiSlice;
