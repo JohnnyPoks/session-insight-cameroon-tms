@@ -1,26 +1,44 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../app/store';
-import HODDashboard from './hod/HODDashboard';
-import { Card, Row, Col, Statistic, Typography, Progress, Table, Tag } from 'antd';
+
+import React, { useState } from 'react';
+import { Card, Row, Col, Statistic, Typography, Progress, Table, Tag, Select, DatePicker, Space } from 'antd';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingUp, Users, Calendar, FileText } from 'lucide-react';
-import { useGetOverviewAnalyticsQuery, useGetSessionsQuery } from '../api/apiSlice';
+import { TrendingUp, Users, Calendar, FileText, BookOpen, User } from 'lucide-react';
+import { useGetOverviewAnalyticsQuery, useGetSessionsQuery, useGetCoursesQuery, useGetLecturersQuery, useGetStudentsQuery } from '../../api/apiSlice';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import type { RootState } from '../../app/store';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
+const { RangePicker } = DatePicker;
 
-const DashboardPage: React.FC = () => {
+const HODDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-
-  // Use HOD-specific dashboard for HOD users
-  if (user?.role === 'hod') {
-    return <HODDashboard />;
-  }
-
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  
   const { data: analytics, isLoading: analyticsLoading } = useGetOverviewAnalyticsQuery();
   const { data: sessions, isLoading: sessionsLoading } = useGetSessionsQuery();
+  const { data: courses } = useGetCoursesQuery();
+  const { data: lecturers } = useGetLecturersQuery();
+  const { data: students } = useGetStudentsQuery();
 
-  // Mock trend data
+  // Filter data based on HOD's department
+  const departmentCourses = courses?.filter(course => course.department === user?.department) || [];
+  const departmentLecturers = lecturers?.filter(lecturer => lecturer.department === user?.department) || [];
+  const departmentSessions = sessions?.filter(session => session.department === user?.department) || [];
+  
+  // Calculate unique students in department
+  const departmentStudents = students?.filter(student => 
+    student.coursesRegistered.some(courseId => 
+      departmentCourses.some(course => course.id === courseId)
+    )
+  ) || [];
+
+  // Mock trend data with filters
   const trendData = [
     { month: 'Jan', sei: 3.8, responses: 1200 },
     { month: 'Feb', sei: 4.0, responses: 1350 },
@@ -30,7 +48,16 @@ const DashboardPage: React.FC = () => {
     { month: 'Jun', sei: 4.4, responses: 1500 }
   ];
 
-  const recentSessions = sessions?.slice(0, 5).map(session => ({
+  // Dimension scores data
+  const dimensionData = [
+    { dimension: 'Clarity & Organization', score: 4.2 },
+    { dimension: 'Student Engagement', score: 4.0 },
+    { dimension: 'Pedagogical Methods', score: 4.1 },
+    { dimension: 'Content Delivery', score: 4.3 },
+    { dimension: 'Learning Impact', score: 4.0 }
+  ];
+
+  const recentSessions = departmentSessions?.slice(0, 5).map(session => ({
     key: session.id,
     course: `${session.courseCode} - ${session.courseName}`,
     instructor: session.instructorName,
@@ -38,6 +65,10 @@ const DashboardPage: React.FC = () => {
     status: session.status,
     students: session.studentCount
   }));
+
+  const handleSessionClick = (sessionId: string) => {
+    navigate(`/sessions/${sessionId}`);
+  };
 
   const statusColumns = [
     {
@@ -87,7 +118,7 @@ const DashboardPage: React.FC = () => {
             Welcome back, {user?.name}
           </Title>
           <Text className="text-gray-600">
-            Here's your teaching evaluation overview
+            Department: {user?.department} - Teaching evaluation overview
           </Text>
         </div>
       </div>
@@ -115,40 +146,81 @@ const DashboardPage: React.FC = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
-              title="Total Sessions"
-              value={analytics?.totalSessions || 0}
+              title="Total Courses"
+              value={departmentCourses.length}
               valueStyle={{ color: '#1E40AF' }}
-              prefix={<Calendar className="w-4 h-4" />}
+              prefix={<BookOpen className="w-4 h-4" />}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
-              title="Total Feedback"
-              value={analytics?.totalFeedback || 0}
+              title="Total Lecturers"
+              value={departmentLecturers.length}
               valueStyle={{ color: '#7C3AED' }}
-              prefix={<FileText className="w-4 h-4" />}
+              prefix={<User className="w-4 h-4" />}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
-              title="Response Rate"
-              value={(analytics?.responseRate || 0) * 100}
-              precision={1}
+              title="Total Students"
+              value={departmentStudents.length}
               valueStyle={{ color: '#059669' }}
               prefix={<Users className="w-4 h-4" />}
-              suffix="%"
             />
           </Card>
         </Col>
       </Row>
 
+      {/* Filters */}
+      <Card title="Chart Filters" size="small">
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={8}>
+            <Select
+              mode="multiple"
+              placeholder="Select courses"
+              style={{ width: '100%' }}
+              value={selectedCourses}
+              onChange={setSelectedCourses}
+            >
+              {departmentCourses.map(course => (
+                <Option key={course.id} value={course.id}>
+                  {course.courseCode} - {course.courseName}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Select
+              mode="multiple"
+              placeholder="Select instructors"
+              style={{ width: '100%' }}
+              value={selectedInstructors}
+              onChange={setSelectedInstructors}
+            >
+              {departmentLecturers.map(lecturer => (
+                <Option key={lecturer.id} value={lecturer.id}>
+                  {lecturer.name}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} sm={8}>
+            <RangePicker
+              style={{ width: '100%' }}
+              value={dateRange}
+              onChange={setDateRange}
+            />
+          </Col>
+        </Row>
+      </Card>
+
       {/* Charts */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
+        <Col xs={24} lg={12}>
           <Card title="SEI Trend Over Time" className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
@@ -167,15 +239,15 @@ const DashboardPage: React.FC = () => {
             </ResponsiveContainer>
           </Card>
         </Col>
-        <Col xs={24} lg={8}>
-          <Card title="Monthly Responses" className="h-96">
+        <Col xs={24} lg={12}>
+          <Card title="Dimension Scores" className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trendData}>
+              <BarChart data={dimensionData} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis type="number" domain={[0, 5]} />
+                <YAxis dataKey="dimension" type="category" width={120} />
                 <Tooltip />
-                <Bar dataKey="responses" fill="#14B8A6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="score" fill="#14B8A6" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -189,10 +261,14 @@ const DashboardPage: React.FC = () => {
           dataSource={recentSessions}
           pagination={false}
           size="middle"
+          onRow={(record) => ({
+            onClick: () => handleSessionClick(record.key),
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
     </div>
   );
 };
 
-export default DashboardPage;
+export default HODDashboard;

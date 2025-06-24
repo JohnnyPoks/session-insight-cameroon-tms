@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -12,6 +13,7 @@ import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import SessionsPage from './pages/SessionsPage';
+import SessionDetails from './pages/hod/SessionDetails';
 import FeedbackPage from './pages/FeedbackPage';
 import CoursesPage from './pages/CoursesPage';
 import LecturersPage from './pages/LecturersPage';
@@ -55,6 +57,7 @@ const AppContent: React.FC = () => {
               <>
                 <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
                 <Route path="/sessions" element={<AppLayout><SessionsPage /></AppLayout>} />
+                <Route path="/sessions/:sessionId" element={<AppLayout><SessionDetails /></AppLayout>} />
                 <Route path="/courses" element={<AppLayout><CoursesPage /></AppLayout>} />
                 <Route path="/lecturers" element={<AppLayout><LecturersPage /></AppLayout>} />
                 <Route path="/students" element={<AppLayout><StudentsPage /></AppLayout>} />

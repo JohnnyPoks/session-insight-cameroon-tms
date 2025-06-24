@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Switch, Typography } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -9,7 +10,9 @@ import {
   FileText,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Menu as MenuIcon,
+  Users
 } from 'lucide-react';
 import type { RootState } from '../../app/store';
 import { logout, toggleTheme } from '../../features/auth/authSlice';
@@ -26,6 +29,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, theme } = useSelector((state: RootState) => state.auth);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -60,6 +64,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       key: '/lecturers',
       icon: <User className="w-4 h-4" />,
       label: 'Lecturers',
+    },
+    {
+      key: '/students',
+      icon: <Users className="w-4 h-4" />,
+      label: 'Students',
     },
     {
       key: '/questionnaires',
@@ -108,19 +117,26 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     <Layout className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
       <Sider 
         theme={theme === 'dark' ? 'dark' : 'light'}
-        className="shadow-lg"
+        className="shadow-lg !fixed left-0 top-0 bottom-0 z-50"
         width={250}
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        trigger={null}
+        style={{ height: '100vh', overflow: 'auto' }}
       >
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
               <Text className="text-white font-bold text-sm">TMS</Text>
             </div>
-            <div>
-              <Text className="font-semibold text-sm">Teaching Management</Text>
-              <br />
-              <Text className="text-xs text-gray-500">Cameroon Universities</Text>
-            </div>
+            {!collapsed && (
+              <div>
+                <Text className="font-semibold text-sm">Teaching Management</Text>
+                <br />
+                <Text className="text-xs text-gray-500">Cameroon Universities</Text>
+              </div>
+            )}
           </div>
         </div>
         
@@ -134,11 +150,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         />
       </Sider>
 
-      <Layout>
+      <Layout style={{ marginLeft: collapsed ? 80 : 250, transition: 'margin-left 0.2s' }}>
         <Header className={`px-6 flex items-center justify-between shadow-sm ${
           theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        } border-b`}>
+        } border-b sticky top-0 z-40`}>
           <div className="flex items-center space-x-4">
+            <Button
+              type="text"
+              icon={<MenuIcon className="w-4 h-4" />}
+              onClick={() => setCollapsed(!collapsed)}
+            />
             <Text className="text-lg font-semibold">
               {user?.role === 'dean' ? 'Dean Dashboard' : 
                user?.role === 'hod' ? `HOD - ${user.department}` : 'Dashboard'}
@@ -173,7 +194,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
         <Content className={`p-6 ${
           theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
-        } min-h-[calc(100vh-64px)]`}>
+        } min-h-[calc(100vh-64px)] overflow-auto`}>
           <div className="animate-fade-in">
             {children}
           </div>

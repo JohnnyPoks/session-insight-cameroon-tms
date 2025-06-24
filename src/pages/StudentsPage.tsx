@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Card, Table, Button, Tag, Space, Modal, Upload, Form, Select, message, Popconfirm } from 'antd';
 import { Users, Plus, Upload as UploadIcon, Download, Trash2, FileSpreadsheet } from 'lucide-react';
 import { useGetStudentsQuery, useUploadStudentListMutation, useGetCoursesQuery } from '../api/apiSlice';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../app/store';
 
 const { Option } = Select;
 const { Dragger } = Upload;
@@ -18,12 +20,17 @@ interface Student {
 
 const StudentsPage: React.FC = () => {
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [form] = Form.useForm();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   const { data: students, isLoading } = useGetStudentsQuery();
   const { data: courses } = useGetCoursesQuery();
   const [uploadStudentList, { isLoading: uploading }] = useUploadStudentListMutation();
+
+  // Filter courses by department for HOD
+  const departmentCourses = user?.role === 'hod' 
+    ? courses?.filter(course => course.department === user.department)
+    : courses;
 
   const handleUpload = () => {
     setIsUploadModalVisible(true);
@@ -31,14 +38,15 @@ const StudentsPage: React.FC = () => {
   };
 
   const handleUploadSubmit = async (values: any) => {
-    if (!values.file || !values.courseId) {
-      message.error('Please select both a course and file');
+    if (!values.file || !values.courseId || !values.level) {
+      message.error('Please select course, level, and file');
       return;
     }
 
     try {
       await uploadStudentList({
         courseId: values.courseId,
+        level: values.level,
         file: values.file.file
       }).unwrap();
       
@@ -51,7 +59,6 @@ const StudentsPage: React.FC = () => {
   };
 
   const downloadTemplate = () => {
-    // Simulate CSV template download
     const csvContent = "Matriculation Number,Student Name,Email,Level\nSTU2024001,John Doe,john.doe@student.edu,100\nSTU2024002,Jane Smith,jane.smith@student.edu,200";
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -96,23 +103,6 @@ const StudentsPage: React.FC = () => {
       onFilter: (value: any, record: Student) => record.level === value,
     },
     {
-      title: 'Courses Registered',
-      dataIndex: 'coursesRegistered',
-      key: 'coursesRegistered',
-      render: (courseIds: string[]) => (
-        <div className="flex flex-wrap gap-1">
-          {courseIds.slice(0, 2).map(courseId => (
-            <Tag key={courseId} color="green" className="text-xs">
-              Course {courseId}
-            </Tag>
-          ))}
-          {courseIds.length > 2 && (
-            <Tag color="gray" className="text-xs">+{courseIds.length - 2} more</Tag>
-          )}
-        </div>
-      ),
-    },
-    {
       title: 'Actions',
       key: 'actions',
       render: (student: Student) => (
@@ -139,7 +129,7 @@ const StudentsPage: React.FC = () => {
     name: 'file',
     multiple: false,
     accept: '.csv,.xlsx,.xls',
-    beforeUpload: () => false, // Prevent auto upload
+    beforeUpload: () => false,
     onChange: (info: any) => {
       form.setFieldsValue({ file: info });
     },
@@ -232,12 +222,25 @@ const StudentsPage: React.FC = () => {
             label="Select Course"
             rules={[{ required: true, message: 'Please select a course' }]}
           >
-            <Select placeholder="Select course for student enrollment">
-              {courses?.map(course => (
+            <Select placeholder="Select course for student enrollment" showSearch>
+              {departmentCourses?.map(course => (
                 <Option key={course.id} value={course.id}>
                   {course.courseCode} - {course.courseName}
                 </Option>
               ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="level"
+            label="Select Level"
+            rules={[{ required: true, message: 'Please select a level' }]}
+          >
+            <Select placeholder="Select student level">
+              <Option value="100">Level 100</Option>
+              <Option value="200">Level 200</Option>
+              <Option value="300">Level 300</Option>
+              <Option value="400">Level 400</Option>
             </Select>
           </Form.Item>
 
