@@ -33,12 +33,12 @@ const HODDashboard: React.FC = () => {
   
   // Calculate unique students in department
   const departmentStudents = students?.filter(student => 
-    student.coursesRegistered.some(courseId => 
+    student.coursesRegistered?.some((courseId: string) => 
       departmentCourses.some(course => course.id === courseId)
     )
   ) || [];
 
-  // Mock trend data with filters
+  // Ensure data has valid numeric values to prevent NaN errors
   const trendData = [
     { month: 'Jan', sei: 3.8, responses: 1200 },
     { month: 'Feb', sei: 4.0, responses: 1350 },
@@ -46,25 +46,32 @@ const HODDashboard: React.FC = () => {
     { month: 'Apr', sei: 4.1, responses: 1320 },
     { month: 'May', sei: 4.3, responses: 1450 },
     { month: 'Jun', sei: 4.4, responses: 1500 }
-  ];
+  ].map(item => ({
+    ...item,
+    sei: Number(item.sei) || 0,
+    responses: Number(item.responses) || 0
+  }));
 
-  // Dimension scores data
+  // Dimension scores data with validation
   const dimensionData = [
     { dimension: 'Clarity & Organization', score: 4.2 },
     { dimension: 'Student Engagement', score: 4.0 },
     { dimension: 'Pedagogical Methods', score: 4.1 },
     { dimension: 'Content Delivery', score: 4.3 },
     { dimension: 'Learning Impact', score: 4.0 }
-  ];
+  ].map(item => ({
+    ...item,
+    score: Number(item.score) || 0
+  }));
 
   const recentSessions = departmentSessions?.slice(0, 5).map(session => ({
     key: session.id,
-    course: `${session.courseCode} - ${session.courseName}`,
-    instructor: session.instructorName,
-    date: new Date(session.date).toLocaleDateString(),
-    status: session.status,
-    students: session.studentCount
-  }));
+    course: `${session.courseCode || ''} - ${session.courseName || ''}`,
+    instructor: session.instructorName || '',
+    date: session.date ? new Date(session.date).toLocaleDateString() : '',
+    status: session.status || 'scheduled',
+    students: Number(session.studentCount) || 0
+  })) || [];
 
   const handleSessionClick = (sessionId: string) => {
     navigate(`/sessions/${sessionId}`);
@@ -102,7 +109,7 @@ const HODDashboard: React.FC = () => {
           closed: 'gray'
         };
         return (
-          <Tag color={colors[status as keyof typeof colors]}>
+          <Tag color={colors[status as keyof typeof colors] || 'blue'}>
             {status.replace('_', ' ').toUpperCase()}
           </Tag>
         );
@@ -115,10 +122,10 @@ const HODDashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <Title level={2} className="mb-1">
-            Welcome back, {user?.name}
+            Welcome back, {user?.name || 'HOD'}
           </Title>
           <Text className="text-gray-600">
-            Department: {user?.department} - Teaching evaluation overview
+            Department: {user?.department || 'Unknown'} - Teaching evaluation overview
           </Text>
         </div>
       </div>
@@ -129,14 +136,14 @@ const HODDashboard: React.FC = () => {
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
               title="Average SEI"
-              value={analytics?.averageSEI || 0}
+              value={Number(analytics?.averageSEI) || 0}
               precision={2}
               valueStyle={{ color: '#14B8A6' }}
               prefix={<TrendingUp className="w-4 h-4" />}
               suffix="/ 5.0"
             />
             <Progress 
-              percent={(analytics?.averageSEI || 0) * 20} 
+              percent={(Number(analytics?.averageSEI) || 0) * 20} 
               showInfo={false} 
               strokeColor="#14B8A6"
               className="mt-2"

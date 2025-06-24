@@ -17,7 +17,7 @@ export const apiSlice = createApi({
   tagTypes: ['User', 'Course', 'Lecturer', 'Student', 'Session', 'Feedback', 'Analytics', 'Questionnaire'],
   endpoints: (builder) => ({
     // Auth
-    login: builder.mutation({
+    login: builder.mutation<any, any>({
       query: (credentials) => ({
         url: '/login',
         method: 'POST',
@@ -26,11 +26,11 @@ export const apiSlice = createApi({
     }),
 
     // Courses
-    getCourses: builder.query({
+    getCourses: builder.query<any[], void>({
       query: () => '/courses',
       providesTags: ['Course'],
     }),
-    createCourse: builder.mutation({
+    createCourse: builder.mutation<any, any>({
       query: (course) => ({
         url: '/courses',
         method: 'POST',
@@ -38,7 +38,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Course'],
     }),
-    updateCourse: builder.mutation({
+    updateCourse: builder.mutation<any, any>({
       query: ({ id, data }) => ({
         url: `/courses/${id}`,
         method: 'PUT',
@@ -46,7 +46,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Course'],
     }),
-    deleteCourse: builder.mutation({
+    deleteCourse: builder.mutation<any, string>({
       query: (id) => ({
         url: `/courses/${id}`,
         method: 'DELETE',
@@ -55,11 +55,11 @@ export const apiSlice = createApi({
     }),
 
     // Lecturers
-    getLecturers: builder.query({
+    getLecturers: builder.query<any[], void>({
       query: () => '/lecturers',
       providesTags: ['Lecturer'],
     }),
-    createLecturer: builder.mutation({
+    createLecturer: builder.mutation<any, any>({
       query: (lecturer) => ({
         url: '/lecturers',
         method: 'POST',
@@ -67,7 +67,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Lecturer'],
     }),
-    updateLecturer: builder.mutation({
+    updateLecturer: builder.mutation<any, any>({
       query: ({ id, data }) => ({
         url: `/lecturers/${id}`,
         method: 'PUT',
@@ -75,7 +75,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Lecturer'],
     }),
-    deleteLecturer: builder.mutation({
+    deleteLecturer: builder.mutation<any, string>({
       query: (id) => ({
         url: `/lecturers/${id}`,
         method: 'DELETE',
@@ -84,11 +84,11 @@ export const apiSlice = createApi({
     }),
 
     // Students
-    getStudents: builder.query({
+    getStudents: builder.query<any[], void>({
       query: () => '/students',
       providesTags: ['Student'],
     }),
-    uploadStudentList: builder.mutation({
+    uploadStudentList: builder.mutation<any, any>({
       query: ({ courseId, level, file }) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -104,15 +104,15 @@ export const apiSlice = createApi({
     }),
 
     // Sessions
-    getSessions: builder.query({
+    getSessions: builder.query<any[], void>({
       query: () => '/sessions',
       providesTags: ['Session'],
     }),
-    getSession: builder.query({
+    getSession: builder.query<any, string>({
       query: (id) => `/sessions/${id}`,
       providesTags: ['Session'],
     }),
-    createSession: builder.mutation({
+    createSession: builder.mutation<any, any>({
       query: (session) => ({
         url: '/sessions',
         method: 'POST',
@@ -120,7 +120,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Session'],
     }),
-    updateSession: builder.mutation({
+    updateSession: builder.mutation<any, any>({
       query: ({ id, data }) => ({
         url: `/sessions/${id}`,
         method: 'PUT',
@@ -128,7 +128,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Session'],
     }),
-    deleteSession: builder.mutation({
+    deleteSession: builder.mutation<any, string>({
       query: (id) => ({
         url: `/sessions/${id}`,
         method: 'DELETE',
@@ -137,7 +137,7 @@ export const apiSlice = createApi({
     }),
 
     // Feedback
-    submitFeedback: builder.mutation({
+    submitFeedback: builder.mutation<any, any>({
       query: (feedback) => ({
         url: '/feedback/submit',
         method: 'POST',
@@ -145,7 +145,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Feedback', 'Analytics'],
     }),
-    verifyStudent: builder.mutation({
+    verifyStudent: builder.mutation<any, any>({
       query: ({ sessionId, matriculationNumber }) => ({
         url: '/feedback/verify-student',
         method: 'POST',
@@ -154,11 +154,11 @@ export const apiSlice = createApi({
     }),
 
     // Questionnaires
-    getQuestionnaires: builder.query({
+    getQuestionnaires: builder.query<any[], void>({
       query: () => '/questionnaires',
       providesTags: ['Questionnaire'],
     }),
-    createQuestionnaire: builder.mutation({
+    createQuestionnaire: builder.mutation<any, any>({
       query: (questionnaire) => ({
         url: '/questionnaires',
         method: 'POST',
@@ -166,7 +166,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Questionnaire'],
     }),
-    updateQuestionnaire: builder.mutation({
+    updateQuestionnaire: builder.mutation<any, any>({
       query: ({ id, data }) => ({
         url: `/questionnaires/${id}`,
         method: 'PUT',
@@ -174,7 +174,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Questionnaire'],
     }),
-    deleteQuestionnaire: builder.mutation({
+    deleteQuestionnaire: builder.mutation<any, string>({
       query: (id) => ({
         url: `/questionnaires/${id}`,
         method: 'DELETE',
@@ -183,11 +183,11 @@ export const apiSlice = createApi({
     }),
 
     // Analytics
-    getOverviewAnalytics: builder.query({
+    getOverviewAnalytics: builder.query<any, void>({
       query: () => '/analytics/overview',
       providesTags: ['Analytics'],
     }),
-    getSessionAnalytics: builder.query({
+    getSessionAnalytics: builder.query<any, string>({
       query: (sessionId) => `/analytics/session/${sessionId}`,
       providesTags: ['Analytics'],
     }),

@@ -47,10 +47,12 @@ const SessionDetails: React.FC = () => {
     }
   ];
 
-  const dimensionData = analytics?.averageScores ? Object.entries(analytics.averageScores).map(([key, value]) => ({
-    dimension: key,
-    score: value
-  })) : [];
+  // Ensure dimension data has valid numeric values
+  const dimensionData = analytics?.averageScores ? 
+    Object.entries(analytics.averageScores).map(([key, value]) => ({
+      dimension: key,
+      score: Number(value) || 0
+    })) : [];
 
   const handleViewResponse = (response: any) => {
     setSelectedResponse(response);
@@ -102,7 +104,7 @@ const SessionDetails: React.FC = () => {
               Session Details
             </Title>
             <Text className="text-gray-600">
-              {session.courseCode} - {session.courseName}
+              {session.courseCode || ''} - {session.courseName || ''}
             </Text>
           </div>
         </div>
@@ -123,16 +125,18 @@ const SessionDetails: React.FC = () => {
       {/* Session Information */}
       <Card title="Session Information">
         <Descriptions column={3} bordered>
-          <Descriptions.Item label="Course Code">{session.courseCode}</Descriptions.Item>
-          <Descriptions.Item label="Course Name">{session.courseName}</Descriptions.Item>
-          <Descriptions.Item label="Instructor">{session.instructorName}</Descriptions.Item>
-          <Descriptions.Item label="Date">{new Date(session.date).toLocaleDateString()}</Descriptions.Item>
-          <Descriptions.Item label="Time">{session.time}</Descriptions.Item>
-          <Descriptions.Item label="Department">{session.department}</Descriptions.Item>
-          <Descriptions.Item label="Expected Students">{session.studentCount}</Descriptions.Item>
-          <Descriptions.Item label="Responses Received">{analytics?.responseCount || 0}</Descriptions.Item>
+          <Descriptions.Item label="Course Code">{session.courseCode || 'N/A'}</Descriptions.Item>
+          <Descriptions.Item label="Course Name">{session.courseName || 'N/A'}</Descriptions.Item>
+          <Descriptions.Item label="Instructor">{session.instructorName || 'N/A'}</Descriptions.Item>
+          <Descriptions.Item label="Date">
+            {session.date ? new Date(session.date).toLocaleDateString() : 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Time">{session.time || 'N/A'}</Descriptions.Item>
+          <Descriptions.Item label="Department">{session.department || 'N/A'}</Descriptions.Item>
+          <Descriptions.Item label="Expected Students">{Number(session.studentCount) || 0}</Descriptions.Item>
+          <Descriptions.Item label="Responses Received">{Number(analytics?.responseCount) || 0}</Descriptions.Item>
           <Descriptions.Item label="Response Rate">
-            <Tag color="green">{((analytics?.responseRate || 0) * 100).toFixed(1)}%</Tag>
+            <Tag color="green">{((Number(analytics?.responseRate) || 0) * 100).toFixed(1)}%</Tag>
           </Descriptions.Item>
         </Descriptions>
       </Card>
@@ -143,7 +147,7 @@ const SessionDetails: React.FC = () => {
           <Card className="text-center">
             <Statistic
               title="Session SEI"
-              value={analytics?.sei || 0}
+              value={Number(analytics?.sei) || 0}
               precision={2}
               valueStyle={{ color: '#14B8A6', fontSize: '2rem' }}
               suffix="/ 5.0"
@@ -154,7 +158,7 @@ const SessionDetails: React.FC = () => {
           <Card className="text-center">
             <Statistic
               title="Total Responses"
-              value={analytics?.responseCount || 0}
+              value={Number(analytics?.responseCount) || 0}
               valueStyle={{ color: '#1E40AF', fontSize: '2rem' }}
               prefix={<FileText className="w-6 h-6" />}
             />
@@ -164,7 +168,7 @@ const SessionDetails: React.FC = () => {
           <Card className="text-center">
             <Statistic
               title="Response Rate"
-              value={(analytics?.responseRate || 0) * 100}
+              value={(Number(analytics?.responseRate) || 0) * 100}
               precision={1}
               valueStyle={{ color: '#059669', fontSize: '2rem' }}
               suffix="%"
@@ -176,15 +180,19 @@ const SessionDetails: React.FC = () => {
 
       {/* Dimension Scores Chart */}
       <Card title="Dimension Scores">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={dimensionData} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" domain={[0, 5]} />
-            <YAxis dataKey="dimension" type="category" width={150} />
-            <Tooltip />
-            <Bar dataKey="score" fill="#14B8A6" radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {dimensionData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dimensionData} layout="horizontal">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" domain={[0, 5]} />
+              <YAxis dataKey="dimension" type="category" width={150} />
+              <Tooltip />
+              <Bar dataKey="score" fill="#14B8A6" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center py-8 text-gray-500">No data available</div>
+        )}
       </Card>
 
       {/* Individual Feedback Responses */}
@@ -225,10 +233,10 @@ const SessionDetails: React.FC = () => {
             <div>
               <Text strong className="text-lg">Dimension Scores:</Text>
               <div className="mt-2 space-y-2">
-                {Object.entries(selectedResponse.scores).map(([dimension, score]) => (
+                {Object.entries(selectedResponse.scores || {}).map(([dimension, score]) => (
                   <div key={dimension} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                     <span>{dimension}</span>
-                    <Tag color="blue">{score}/5</Tag>
+                    <Tag color="blue">{Number(score) || 0}/5</Tag>
                   </div>
                 ))}
               </div>
@@ -237,7 +245,7 @@ const SessionDetails: React.FC = () => {
             <div>
               <Text strong className="text-lg">Comments:</Text>
               <div className="mt-2 p-3 bg-gray-50 rounded">
-                <Text>{selectedResponse.comment}</Text>
+                <Text>{selectedResponse.comment || 'No comment provided'}</Text>
               </div>
             </div>
           </div>
