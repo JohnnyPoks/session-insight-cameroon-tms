@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Tag, Descriptions } from 'antd';
 import { FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -202,7 +201,7 @@ const QuestionnairesPage: React.FC = () => {
       key: 'status',
       render: (status: string) => (
         <Tag color={status === 'active' ? 'green' : 'orange'}>
-          {status.toUpperCase()}
+          {status ? status.toUpperCase() : 'UNKNOWN'}
         </Tag>
       ),
     },
