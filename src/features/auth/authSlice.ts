@@ -27,6 +27,13 @@ export const authSlice = createSlice({
       localStorage.setItem('tms-user', JSON.stringify(action.payload.user));
       localStorage.setItem('tms-token', action.payload.token);
     },
+    setCredentials: (state, action: PayloadAction<{ user: User; token: string }>) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.isAuthenticated = true;
+      localStorage.setItem('tms-user', JSON.stringify(action.payload.user));
+      localStorage.setItem('tms-token', action.payload.token);
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -41,4 +48,4 @@ export const authSlice = createSlice({
   },
 });
 
-export const { loginSuccess, logout, toggleTheme } = authSlice.actions;
+export const { loginSuccess, setCredentials, logout, toggleTheme } = authSlice.actions;
