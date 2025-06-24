@@ -12,7 +12,9 @@ import {
   Moon,
   Sun,
   Menu as MenuIcon,
-  Users
+  Users,
+  BarChart3,
+  Shield
 } from 'lucide-react';
 import type { RootState } from '../../app/store';
 import { logout, toggleTheme } from '../../features/auth/authSlice';
@@ -44,7 +46,42 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     dispatch(toggleTheme());
   };
 
-  const menuItems = [
+  // Dean-specific menu items
+  const deanMenuItems = [
+    {
+      key: '/dashboard',
+      icon: <BarChart3 className="w-4 h-4" />,
+      label: 'Faculty Analytics',
+    },
+    {
+      key: '/system-config',
+      icon: <Settings className="w-4 h-4" />,
+      label: 'System Configuration',
+    },
+    {
+      key: '/sessions',
+      icon: <Calendar className="w-4 h-4" />,
+      label: 'All Sessions',
+    },
+    {
+      key: '/courses',
+      icon: <FileText className="w-4 h-4" />,
+      label: 'All Courses',
+    },
+    {
+      key: '/lecturers',
+      icon: <User className="w-4 h-4" />,
+      label: 'All Lecturers',
+    },
+    {
+      key: '/questionnaires',
+      icon: <FileText className="w-4 h-4" />,
+      label: 'Questionnaires',
+    }
+  ];
+
+  // HOD menu items
+  const hodMenuItems = [
     {
       key: '/dashboard',
       icon: <User className="w-4 h-4" />,
@@ -79,20 +116,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       key: '/analytics',
       icon: <Settings className="w-4 h-4" />,
       label: 'Analytics',
-    },
-    ...(user?.role === 'dean' ? [{
-      key: '/system-config',
-      icon: <Settings className="w-4 h-4" />,
-      label: 'System Config',
-    }] : [])
+    }
   ];
 
+  const menuItems = user?.role === 'dean' ? deanMenuItems : hodMenuItems;
+
   const userMenuItems = [
-    {
+    ...(user?.role === 'dean' ? [{
+      key: 'profile',
+      label: 'My Profile',
+      icon: <User className="w-4 h-4" />,
+      onClick: () => navigate('/profile'),
+    }] : [{
       key: 'profile',
       label: 'Profile',
       icon: <User className="w-4 h-4" />,
-    },
+    }]),
     {
       key: 'settings',
       label: 'Settings',
@@ -184,7 +223,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             >
               <Button type="text" className="flex items-center space-x-2 h-10">
                 <Avatar size="small" className="bg-primary-500">
-                  {user?.name.charAt(0).toUpperCase()}
+                  {user?.role === 'dean' ? <Shield className="w-3 h-3" /> : user?.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <span className="hidden md:inline">{user?.name}</span>
               </Button>

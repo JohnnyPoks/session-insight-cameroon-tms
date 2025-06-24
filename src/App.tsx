@@ -22,13 +22,19 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SystemConfigPage from './pages/SystemConfigPage';
 import StudentsPage from './pages/StudentsPage';
 
+// Dean pages
+import DeanDashboard from './features/dean/DeanDashboard';
+import DeanSystemConfigPage from './features/dean/SystemConfigPage';
+import DeanProfilePage from './features/dean/DeanProfilePage';
+import UserRegistrationPage from './features/dean/UserRegistrationPage';
+
 // Start Mirage server in development
 if (import.meta.env.DEV) {
   makeServer();
 }
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, theme: appTheme } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, theme: appTheme, user } = useSelector((state: RootState) => state.auth);
 
   return (
     <ConfigProvider
@@ -45,6 +51,7 @@ const AppContent: React.FC = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<UserRegistrationPage />} />
             <Route path="/feedback/:sessionId" element={<FeedbackPage />} />
             
             {isAuthenticated ? (
@@ -55,7 +62,22 @@ const AppContent: React.FC = () => {
             
             {isAuthenticated && (
               <>
-                <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
+                {/* Dean-specific routes */}
+                {user?.role === 'dean' ? (
+                  <>
+                    <Route path="/dashboard" element={<AppLayout><DeanDashboard /></AppLayout>} />
+                    <Route path="/system-config" element={<AppLayout><DeanSystemConfigPage /></AppLayout>} />
+                    <Route path="/profile" element={<AppLayout><DeanProfilePage /></AppLayout>} />
+                  </>
+                ) : (
+                  <>
+                    {/* HOD and other role routes */}
+                    <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
+                    <Route path="/system-config" element={<AppLayout><SystemConfigPage /></AppLayout>} />
+                  </>
+                )}
+                
+                {/* Common routes for all authenticated users */}
                 <Route path="/sessions" element={<AppLayout><SessionsPage /></AppLayout>} />
                 <Route path="/sessions/:sessionId" element={<AppLayout><SessionDetails /></AppLayout>} />
                 <Route path="/courses" element={<AppLayout><CoursesPage /></AppLayout>} />
@@ -63,7 +85,6 @@ const AppContent: React.FC = () => {
                 <Route path="/students" element={<AppLayout><StudentsPage /></AppLayout>} />
                 <Route path="/questionnaires" element={<AppLayout><QuestionnairesPage /></AppLayout>} />
                 <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
-                <Route path="/system-config" element={<AppLayout><SystemConfigPage /></AppLayout>} />
               </>
             )}
             

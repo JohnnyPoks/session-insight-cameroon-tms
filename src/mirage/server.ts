@@ -1,4 +1,3 @@
-
 import { createServer, Model, Factory, Response } from 'miragejs';
 
 export function makeServer({ environment = 'development' } = {}) {
@@ -73,6 +72,7 @@ export function makeServer({ environment = 'development' } = {}) {
 
       questionnaire: Factory.extend({
         name: () => 'Standard Teaching Evaluation',
+        status: () => 'active',
         questions: () => [
           {
             id: '1',
@@ -139,26 +139,145 @@ export function makeServer({ environment = 'development' } = {}) {
         department: 'Electrical Engineering'
       });
 
-      // Create courses
-      server.createList('course', 10);
+      // Create registered users without roles for Dean assignment
+      server.create('user', {
+        id: '4',
+        username: 'emily.davis@university.edu',
+        name: 'Dr. Emily Davis',
+        role: 'user'
+      });
+
+      server.create('user', {
+        id: '5',
+        username: 'robert.wilson@university.edu',
+        name: 'Dr. Robert Wilson',
+        role: 'user'
+      });
+
+      // Create comprehensive courses across departments
+      const departments = ['Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology'];
+      departments.forEach((dept, deptIndex) => {
+        for (let i = 0; i < 8; i++) {
+          server.create('course', {
+            id: `${deptIndex * 10 + i + 1}`,
+            courseCode: `${dept.substring(0, 3).toUpperCase()}${100 + i}`,
+            courseName: `${dept} Course ${i + 1}`,
+            department: dept
+          });
+        }
+      });
       
-      // Create lecturers
-      server.createList('lecturer', 15);
+      // Create lecturers across departments
+      departments.forEach((dept, deptIndex) => {
+        for (let i = 0; i < 6; i++) {
+          server.create('lecturer', {
+            id: `${deptIndex * 10 + i + 1}`,
+            name: `Dr. ${dept} Lecturer ${i + 1}`,
+            email: `${dept.toLowerCase().replace(' ', '')}lecturer${i + 1}@university.edu`,
+            department: dept
+          });
+        }
+      });
       
       // Create students with specific matriculation numbers for testing
-      server.createList('student', 100);
+      server.createList('student', 200);
       
-      // Create sessions
-      server.createList('session', 50);
+      // Create sessions with varied data
+      for (let i = 0; i < 100; i++) {
+        const deptIndex = i % departments.length;
+        const dept = departments[deptIndex];
+        server.create('session', {
+          id: `${i + 1}`,
+          courseCode: `${dept.substring(0, 3).toUpperCase()}${100 + (i % 8)}`,
+          courseName: `${dept} Course ${(i % 8) + 1}`,
+          instructorName: `Dr. ${dept} Lecturer ${(i % 6) + 1}`,
+          department: dept,
+          date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
+          studentCount: Math.floor(Math.random() * 50) + 20,
+          status: ['scheduled', 'open_for_feedback', 'closed'][Math.floor(Math.random() * 3)]
+        });
+      }
       
       // Create questionnaires
       server.create('questionnaire', {
         id: '1',
-        name: 'Standard Teaching Evaluation'
+        name: 'Standard Teaching Evaluation',
+        status: 'active'
+      });
+
+      server.create('questionnaire', {
+        id: '2',
+        name: 'Lab Session Evaluation',
+        status: 'active',
+        questions: [
+          {
+            id: '1',
+            dimension: 'Clarity & Organization',
+            text: 'How well was the lab session organized?',
+            type: 'likert'
+          },
+          {
+            id: '2',
+            dimension: 'Student Engagement',
+            text: 'How interactive was the lab session?',
+            type: 'likert'
+          },
+          {
+            id: '3',
+            dimension: 'Pedagogical Methods & Activities',
+            text: 'How effective were the lab activities?',
+            type: 'likert'
+          },
+          {
+            id: '4',
+            dimension: 'Content Delivery & Subject Mastery',
+            text: 'How well did the instructor demonstrate technical concepts?',
+            type: 'likert'
+          },
+          {
+            id: '5',
+            dimension: 'Perceived Learning Impact',
+            text: 'How much practical knowledge did you gain?',
+            type: 'likert'
+          },
+          {
+            id: '6',
+            dimension: 'General',
+            text: 'Any additional feedback about the lab session?',
+            type: 'open_ended'
+          }
+        ]
       });
       
-      // Create feedback
-      server.createList('feedback', 200);
+      // Create diverse feedback with varied scores
+      for (let i = 0; i < 500; i++) {
+        const sessionId = Math.floor(Math.random() * 100) + 1;
+        const baseScore = Math.random() * 5 + 1; // Base score between 1-6
+        const variation = 0.5; // Allow some variation in scores
+        
+        server.create('feedback', {
+          id: `${i + 1}`,
+          sessionId: `${sessionId}`,
+          studentId: `${Math.floor(Math.random() * 200) + 1}`,
+          submissionTimestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          scores: {
+            'Clarity & Organization': Math.max(1, Math.min(5, Math.round(baseScore + (Math.random() - 0.5) * variation))),
+            'Student Engagement': Math.max(1, Math.min(5, Math.round(baseScore + (Math.random() - 0.5) * variation))),
+            'Pedagogical Methods & Activities': Math.max(1, Math.min(5, Math.round(baseScore + (Math.random() - 0.5) * variation))),
+            'Content Delivery & Subject Mastery': Math.max(1, Math.min(5, Math.round(baseScore + (Math.random() - 0.5) * variation))),
+            'Perceived Learning Impact': Math.max(1, Math.min(5, Math.round(baseScore + (Math.random() - 0.5) * variation)))
+          },
+          openEndedComment: [
+            'Great session, very informative.',
+            'Could be more interactive.',
+            'Excellent teaching style.',
+            'Need more examples.',
+            'Well structured content.',
+            'Too fast paced.',
+            'Very engaging instructor.'
+          ][Math.floor(Math.random() * 7)]
+        });
+      }
     },
 
     routes() {
@@ -187,6 +306,29 @@ export function makeServer({ environment = 'development' } = {}) {
         
         console.log('User not found, returning 401');
         return new Response(401, {}, { error: 'Invalid credentials' });
+      });
+
+      // New registration route
+      this.post('/register', (schema, request) => {
+        const attrs = JSON.parse(request.requestBody);
+        console.log('User registration:', attrs);
+        
+        const newUser = schema.db.users.insert({
+          id: Math.random().toString(36).substr(2, 9),
+          username: attrs.username,
+          name: attrs.fullName,
+          role: 'user',
+          department: null
+        });
+        
+        return { success: true, message: 'Registration successful', user: newUser };
+      });
+
+      // SEI weights management
+      this.post('/sei-weights', (schema, request) => {
+        const weights = JSON.parse(request.requestBody);
+        console.log('SEI weights saved:', weights);
+        return { success: true, message: 'SEI weights saved successfully' };
       });
 
       // Course routes
@@ -340,13 +482,22 @@ export function makeServer({ environment = 'development' } = {}) {
         return new Response(204);
       });
 
-      // Analytics routes
-      this.get('/analytics/overview', (schema) => {
-        const feedback = schema.db.feedback;
+      // Enhanced analytics routes with filtering
+      this.get('/analytics/overview', (schema, request) => {
+        const { department, instructor, course, dateRange } = request.queryParams;
+        
+        let feedback = schema.db.feedback;
         const sessions = schema.db.sessions;
         
+        // Apply filters if provided
+        if (department && department !== 'all') {
+          const filteredSessions = sessions.where({ department });
+          const sessionIds = filteredSessions.map(s => s.id);
+          feedback = feedback.filter(f => sessionIds.includes(f.sessionId));
+        }
+        
         const avgSEI = feedback.length > 0 ? 
-          feedback.reduce((sum: number, f: any) => {
+          feedback.reduce((sum, f) => {
             const scores = f.scores;
             const sei = (scores['Clarity & Organization'] + scores['Student Engagement'] + 
                         scores['Pedagogical Methods & Activities'] + scores['Content Delivery & Subject Mastery'] + 
@@ -355,10 +506,10 @@ export function makeServer({ environment = 'development' } = {}) {
           }, 0) / feedback.length : 0;
 
         return {
-          averageSEI: avgSEI,
+          averageSEI: Number(avgSEI.toFixed(2)),
           totalSessions: sessions.length,
           totalFeedback: feedback.length,
-          responseRate: 0.75
+          responseRate: 0.785
         };
       });
 
@@ -383,14 +534,14 @@ export function makeServer({ environment = 'development' } = {}) {
         }
 
         const averageScores = {
-          'Clarity & Organization': sessionFeedback.reduce((sum: number, f: any) => sum + f.scores['Clarity & Organization'], 0) / sessionFeedback.length,
-          'Student Engagement': sessionFeedback.reduce((sum: number, f: any) => sum + f.scores['Student Engagement'], 0) / sessionFeedback.length,
-          'Pedagogical Methods & Activities': sessionFeedback.reduce((sum: number, f: any) => sum + f.scores['Pedagogical Methods & Activities'], 0) / sessionFeedback.length,
-          'Content Delivery & Subject Mastery': sessionFeedback.reduce((sum: number, f: any) => sum + f.scores['Content Delivery & Subject Mastery'], 0) / sessionFeedback.length,
-          'Perceived Learning Impact': sessionFeedback.reduce((sum: number, f: any) => sum + f.scores['Perceived Learning Impact'], 0) / sessionFeedback.length
+          'Clarity & Organization': sessionFeedback.reduce((sum, f) => sum + f.scores['Clarity & Organization'], 0) / sessionFeedback.length,
+          'Student Engagement': sessionFeedback.reduce((sum, f) => sum + f.scores['Student Engagement'], 0) / sessionFeedback.length,
+          'Pedagogical Methods & Activities': sessionFeedback.reduce((sum, f) => sum + f.scores['Pedagogical Methods & Activities'], 0) / sessionFeedback.length,
+          'Content Delivery & Subject Mastery': sessionFeedback.reduce((sum, f) => sum + f.scores['Content Delivery & Subject Mastery'], 0) / sessionFeedback.length,
+          'Perceived Learning Impact': sessionFeedback.reduce((sum, f) => sum + f.scores['Perceived Learning Impact'], 0) / sessionFeedback.length
         };
 
-        const sei = Object.values(averageScores).reduce((sum: number, score: number) => sum + score, 0) / 5;
+        const sei = Object.values(averageScores).reduce((sum, score) => sum + score, 0) / 5;
 
         return {
           sessionId,
