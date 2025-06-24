@@ -1,108 +1,147 @@
 
-import React from 'react';
-import { Card, Form, Input, Button, Typography, message } from 'antd';
-import { User, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Form, Input, Button, Card, message, Typography, Divider, Space } from 'antd';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { User, Lock, BookOpen, Users } from 'lucide-react';
+import { setCredentials } from '../features/auth/authSlice';
 import { useLoginMutation } from '../api/apiSlice';
-import { loginSuccess } from '../features/auth/authSlice';
 
 const { Title, Text } = Typography;
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [login, { isLoading }] = useLoginMutation();
+  const [form] = Form.useForm();
 
-  const onFinish = async (values: { username: string; password: string }) => {
+  const handleSubmit = async (values: { username: string; password: string }) => {
     try {
       const result = await login(values).unwrap();
-      dispatch(loginSuccess(result));
+      dispatch(setCredentials(result));
       message.success('Login successful!');
       navigate('/dashboard');
     } catch (error) {
-      message.error('Invalid credentials');
+      message.error('Invalid credentials. Please try again.');
+    }
+  };
+
+  const handleDemoLogin = async (userType: 'hod' | 'dean') => {
+    const demoCredentials = {
+      hod: {
+        username: 'hod.computerscience@example.com',
+        password: 'demo'
+      },
+      dean: {
+        username: 'dean@example.com', 
+        password: 'demo'
+      }
+    };
+
+    try {
+      const result = await login(demoCredentials[userType]).unwrap();
+      dispatch(setCredentials(result));
+      message.success(`Logged in as Demo ${userType.toUpperCase()}!`);
+      navigate('/dashboard');
+    } catch (error) {
+      message.error('Demo login failed. Please try again.');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Text className="text-white font-bold text-xl">TMS</Text>
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
           </div>
           <Title level={2} className="mb-2">Teaching Management System</Title>
-          <Text className="text-gray-600">Session-level evaluation for Cameroonian universities</Text>
+          <Text className="text-gray-600">Cameroon Universities</Text>
         </div>
 
-        <Card className="shadow-lg border-0">
-          <Form
-            name="login"
-            layout="vertical"
-            onFinish={onFinish}
-            size="large"
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          size="large"
+        >
+          <Form.Item
+            name="username"
+            label="Email Address"
+            rules={[
+              { required: true, message: 'Please enter your email' },
+              { type: 'email', message: 'Please enter a valid email' }
+            ]}
           >
-            <Form.Item
-              name="username"
-              label="Username"
-              rules={[{ required: true, message: 'Please input your username!' }]}
+            <Input 
+              prefix={<User className="w-4 h-4 text-gray-400" />}
+              placeholder="Enter your email address"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: 'Please enter your password' }]}
+          >
+            <Input.Password 
+              prefix={<Lock className="w-4 h-4 text-gray-400" />}
+              placeholder="Enter your password"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              className="w-full bg-primary-500 hover:bg-primary-600"
+              loading={isLoading}
+              size="large"
             >
-              <Input 
-                prefix={<User className="w-4 h-4 text-gray-400" />}
-                placeholder="Enter your username"
-              />
-            </Form.Item>
+              Sign In
+            </Button>
+          </Form.Item>
+        </Form>
 
-            <Form.Item
-              name="password"
-              label="Password"
-              rules={[{ required: true, message: 'Please input your password!' }]}
-            >
-              <Input.Password
-                prefix={<Lock className="w-4 h-4 text-gray-400" />}
-                placeholder="Enter your password"
-              />
-            </Form.Item>
+        <Divider>
+          <Text className="text-gray-500 text-sm">Demo Access</Text>
+        </Divider>
 
-            <Form.Item>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                className="w-full h-12 bg-primary-500 hover:bg-primary-600 border-0"
-                loading={isLoading}
-              >
-                Sign In
-              </Button>
-            </Form.Item>
-          </Form>
+        <Space direction="vertical" className="w-full">
+          <Button
+            type="default"
+            className="w-full"
+            size="large"
+            icon={<Users className="w-4 h-4" />}
+            onClick={() => handleDemoLogin('hod')}
+            loading={isLoading}
+          >
+            Log in as Demo HOD
+          </Button>
+          
+          <Button
+            type="default"
+            className="w-full"
+            size="large"
+            icon={<User className="w-4 h-4" />}
+            onClick={() => handleDemoLogin('dean')}
+            loading={isLoading}
+          >
+            Log in as Demo Dean
+          </Button>
+        </Space>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <Text className="text-sm font-medium block mb-2 text-blue-900">Demo Login Credentials:</Text>
-            <div className="space-y-2 text-sm text-blue-800">
-              <div className="flex justify-between">
-                <strong>Dean:</strong> 
-                <span>dean@example.com</span>
-              </div>
-              <div className="flex justify-between">
-                <strong>HOD CS:</strong> 
-                <span>hod.computerscience@example.com</span>
-              </div>
-              <div className="flex justify-between">
-                <strong>HOD EE:</strong> 
-                <span>hod.electricalengineering@example.com</span>
-              </div>
-              <div className="flex justify-between">
-                <strong>Password:</strong> 
-                <span className="text-green-700 font-medium">Any password works!</span>
-              </div>
-            </div>
-            <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
-              <strong>Student Feedback:</strong> Use matriculation numbers like STU2024001, STU2024002, etc.
-            </div>
-          </div>
-        </Card>
-      </div>
+        <div className="mt-6 text-center">
+          <Text className="text-xs text-gray-500">
+            Demo Credentials Available:<br/>
+            HOD: hod.computerscience@example.com<br/>
+            Dean: dean@example.com<br/>
+            (Any password works)
+          </Text>
+        </div>
+      </Card>
     </div>
   );
 };

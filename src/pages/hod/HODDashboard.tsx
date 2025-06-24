@@ -1,77 +1,68 @@
 
 import React, { useState } from 'react';
-import { Card, Row, Col, Statistic, Typography, Progress, Table, Tag, Select, DatePicker, Space } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Table, Tag, Button, Select, DatePicker, Space } from 'antd';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingUp, Users, Calendar, FileText, BookOpen, User } from 'lucide-react';
+import { TrendingUp, Users, Calendar, FileText, BookOpen, UserCheck, GraduationCap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useGetOverviewAnalyticsQuery, useGetSessionsQuery, useGetCoursesQuery, useGetLecturersQuery, useGetStudentsQuery } from '../../api/apiSlice';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import type { RootState } from '../../app/store';
-import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const HODDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
-  const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
-  
+  const [selectedCourse, setSelectedCourse] = useState<string | undefined>(undefined);
+  const [selectedInstructor, setSelectedInstructor] = useState<string | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<any>(null);
+
   const { data: analytics, isLoading: analyticsLoading } = useGetOverviewAnalyticsQuery();
   const { data: sessions, isLoading: sessionsLoading } = useGetSessionsQuery();
-  const { data: courses } = useGetCoursesQuery();
-  const { data: lecturers } = useGetLecturersQuery();
-  const { data: students } = useGetStudentsQuery();
+  const { data: courses, isLoading: coursesLoading } = useGetCoursesQuery();
+  const { data: lecturers, isLoading: lecturersLoading } = useGetLecturersQuery();
+  const { data: students, isLoading: studentsLoading } = useGetStudentsQuery();
 
-  // Filter data based on HOD's department
+  // Filter data based on user's department
   const departmentCourses = courses?.filter(course => course.department === user?.department) || [];
   const departmentLecturers = lecturers?.filter(lecturer => lecturer.department === user?.department) || [];
   const departmentSessions = sessions?.filter(session => session.department === user?.department) || [];
-  
-  // Calculate unique students in department
+
+  // Calculate department-specific statistics
   const departmentStudents = students?.filter(student => 
     student.coursesRegistered?.some((courseId: string) => 
       departmentCourses.some(course => course.id === courseId)
     )
   ) || [];
 
-  // Ensure data has valid numeric values to prevent NaN errors
+  // Mock trend data with safe numeric values
   const trendData = [
-    { month: 'Jan', sei: 3.8, responses: 1200 },
-    { month: 'Feb', sei: 4.0, responses: 1350 },
-    { month: 'Mar', sei: 4.2, responses: 1400 },
-    { month: 'Apr', sei: 4.1, responses: 1320 },
-    { month: 'May', sei: 4.3, responses: 1450 },
-    { month: 'Jun', sei: 4.4, responses: 1500 }
-  ].map(item => ({
-    ...item,
-    sei: Number(item.sei) || 0,
-    responses: Number(item.responses) || 0
-  }));
+    { month: 'Jan', sei: 3.8, responses: 120 },
+    { month: 'Feb', sei: 4.0, responses: 135 },
+    { month: 'Mar', sei: 4.2, responses: 140 },
+    { month: 'Apr', sei: 4.1, responses: 132 },
+    { month: 'May', sei: 4.3, responses: 145 },
+    { month: 'Jun', sei: 4.4, responses: 150 }
+  ];
 
-  // Dimension scores data with validation
+  // Mock dimension scores data with safe numeric values
   const dimensionData = [
     { dimension: 'Clarity & Organization', score: 4.2 },
     { dimension: 'Student Engagement', score: 4.0 },
     { dimension: 'Pedagogical Methods', score: 4.1 },
     { dimension: 'Content Delivery', score: 4.3 },
     { dimension: 'Learning Impact', score: 4.0 }
-  ].map(item => ({
-    ...item,
-    score: Number(item.score) || 0
-  }));
+  ];
 
-  const recentSessions = departmentSessions?.slice(0, 5).map(session => ({
+  const recentSessions = departmentSessions.slice(0, 5).map(session => ({
     key: session.id,
-    course: `${session.courseCode || ''} - ${session.courseName || ''}`,
-    instructor: session.instructorName || '',
-    date: session.date ? new Date(session.date).toLocaleDateString() : '',
-    status: session.status || 'scheduled',
-    students: Number(session.studentCount) || 0
-  })) || [];
+    course: `${session.courseCode} - ${session.courseName}`,
+    instructor: session.instructorName,
+    date: new Date(session.date).toLocaleDateString(),
+    status: session.status,
+    students: session.studentCount || 0
+  }));
 
   const handleSessionClick = (sessionId: string) => {
     navigate(`/sessions/${sessionId}`);
@@ -109,7 +100,7 @@ const HODDashboard: React.FC = () => {
           closed: 'gray'
         };
         return (
-          <Tag color={colors[status as keyof typeof colors] || 'blue'}>
+          <Tag color={colors[status as keyof typeof colors]}>
             {status.replace('_', ' ').toUpperCase()}
           </Tag>
         );
@@ -122,15 +113,15 @@ const HODDashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <Title level={2} className="mb-1">
-            Welcome back, {user?.name || 'HOD'}
+            HOD Dashboard - {user?.department}
           </Title>
           <Text className="text-gray-600">
-            Department: {user?.department || 'Unknown'} - Teaching evaluation overview
+            Comprehensive overview of your department's teaching evaluations
           </Text>
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Enhanced Key Metrics */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -142,18 +133,12 @@ const HODDashboard: React.FC = () => {
               prefix={<TrendingUp className="w-4 h-4" />}
               suffix="/ 5.0"
             />
-            <Progress 
-              percent={(Number(analytics?.averageSEI) || 0) * 20} 
-              showInfo={false} 
-              strokeColor="#14B8A6"
-              className="mt-2"
-            />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
-              title="Total Courses"
+              title="Total Courses in Department"
               value={departmentCourses.length}
               valueStyle={{ color: '#1E40AF' }}
               prefix={<BookOpen className="w-4 h-4" />}
@@ -163,66 +148,72 @@ const HODDashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
-              title="Total Lecturers"
+              title="Total Lecturers in Department"
               value={departmentLecturers.length}
               valueStyle={{ color: '#7C3AED' }}
-              prefix={<User className="w-4 h-4" />}
+              prefix={<UserCheck className="w-4 h-4" />}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <Statistic
-              title="Total Students"
+              title="Total Students Enrolled"
               value={departmentStudents.length}
               valueStyle={{ color: '#059669' }}
-              prefix={<Users className="w-4 h-4" />}
+              prefix={<GraduationCap className="w-4 h-4" />}
             />
           </Card>
         </Col>
       </Row>
 
       {/* Filters */}
-      <Card title="Chart Filters" size="small">
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={8}>
+      <Card title="Chart Filters">
+        <Space wrap>
+          <div>
+            <Text strong>Course: </Text>
             <Select
-              mode="multiple"
-              placeholder="Select courses"
-              style={{ width: '100%' }}
-              value={selectedCourses}
-              onChange={setSelectedCourses}
+              style={{ width: 200 }}
+              placeholder="Select course"
+              allowClear
+              value={selectedCourse}
+              onChange={setSelectedCourse}
+              loading={coursesLoading}
             >
               {departmentCourses.map(course => (
-                <Option key={course.id} value={course.id}>
+                <Select.Option key={course.id} value={course.id}>
                   {course.courseCode} - {course.courseName}
-                </Option>
+                </Select.Option>
               ))}
             </Select>
-          </Col>
-          <Col xs={24} sm={8}>
+          </div>
+          
+          <div>
+            <Text strong>Instructor: </Text>
             <Select
-              mode="multiple"
-              placeholder="Select instructors"
-              style={{ width: '100%' }}
-              value={selectedInstructors}
-              onChange={setSelectedInstructors}
+              style={{ width: 200 }}
+              placeholder="Select instructor"
+              allowClear
+              value={selectedInstructor}
+              onChange={setSelectedInstructor}
+              loading={lecturersLoading}
             >
               {departmentLecturers.map(lecturer => (
-                <Option key={lecturer.id} value={lecturer.id}>
+                <Select.Option key={lecturer.id} value={lecturer.id}>
                   {lecturer.name}
-                </Option>
+                </Select.Option>
               ))}
             </Select>
-          </Col>
-          <Col xs={24} sm={8}>
-            <RangePicker
-              style={{ width: '100%' }}
+          </div>
+          
+          <div>
+            <Text strong>Date Range: </Text>
+            <RangePicker 
               value={dateRange}
               onChange={setDateRange}
             />
-          </Col>
-        </Row>
+          </div>
+        </Space>
       </Card>
 
       {/* Charts */}
@@ -246,22 +237,36 @@ const HODDashboard: React.FC = () => {
             </ResponsiveContainer>
           </Card>
         </Col>
+        
         <Col xs={24} lg={12}>
-          <Card title="Dimension Scores" className="h-96">
+          <Card title="Monthly Responses" className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dimensionData} layout="horizontal">
+              <BarChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 5]} />
-                <YAxis dataKey="dimension" type="category" width={120} />
+                <XAxis dataKey="month" />
+                <YAxis />
                 <Tooltip />
-                <Bar dataKey="score" fill="#14B8A6" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="responses" fill="#14B8A6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
       </Row>
 
-      {/* Recent Sessions */}
+      {/* New Dimension Scores Chart */}
+      <Card title="Dimension Scores (Department Average)">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={dimensionData} layout="horizontal">
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" domain={[0, 5]} />
+            <YAxis dataKey="dimension" type="category" width={150} />
+            <Tooltip />
+            <Bar dataKey="score" fill="#14B8A6" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      {/* Recent Sessions with clickable rows */}
       <Card title="Recent Sessions" loading={sessionsLoading}>
         <Table
           columns={statusColumns}
@@ -270,7 +275,8 @@ const HODDashboard: React.FC = () => {
           size="middle"
           onRow={(record) => ({
             onClick: () => handleSessionClick(record.key),
-            style: { cursor: 'pointer' }
+            style: { cursor: 'pointer' },
+            className: 'hover:bg-gray-50'
           })}
         />
       </Card>

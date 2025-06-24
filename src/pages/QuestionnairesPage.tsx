@@ -1,19 +1,40 @@
 
 import React, { useState } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Tag } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Tag, Descriptions } from 'antd';
 import { FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { useGetQuestionnairesQuery, useCreateQuestionnaireMutation, useUpdateQuestionnaireMutation, useDeleteQuestionnaireMutation } from '../api/apiSlice';
-import type { Questionnaire, Question, FeedbackScores } from '../types';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
+interface Question {
+  id: string;
+  text: string;
+  type: 'likert' | 'open_ended';
+  dimension: string;
+  required: boolean;
+}
+
+interface Questionnaire {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'draft' | 'active';
+  questions: Question[];
+  lastUpdated?: string;
+}
+
 const QuestionnairesPage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [isQuestionModalVisible, setIsQuestionModalVisible] = useState(false);
   const [editingQuestionnaire, setEditingQuestionnaire] = useState<Questionnaire | null>(null);
   const [previewQuestionnaire, setPreviewQuestionnaire] = useState<Questionnaire | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
+  
   const [form] = Form.useForm();
+  const [questionForm] = Form.useForm();
 
   const { data: questionnaires, isLoading } = useGetQuestionnairesQuery();
   const [createQuestionnaire] = useCreateQuestionnaireMutation();
@@ -28,58 +49,31 @@ const QuestionnairesPage: React.FC = () => {
     'Perceived Learning Impact'
   ];
 
-  const defaultQuestions: Question[] = [
-    {
-      id: '1',
-      dimension: 'Clarity & Organization',
-      text: 'How clear and well-organized was the session content?',
-      type: 'likert'
-    },
-    {
-      id: '2',
-      dimension: 'Student Engagement',
-      text: 'How well did the instructor engage students in learning?',
-      type: 'likert'
-    },
-    {
-      id: '3',
-      dimension: 'Pedagogical Methods & Activities',
-      text: 'How effective were the teaching methods and activities used?',
-      type: 'likert'
-    },
-    {
-      id: '4',
-      dimension: 'Content Delivery & Subject Mastery',
-      text: 'How well did the instructor demonstrate subject mastery?',
-      type: 'likert'
-    },
-    {
-      id: '5',
-      dimension: 'Perceived Learning Impact',
-      text: 'How much do you feel you learned from this session?',
-      type: 'likert'
-    },
-    {
-      id: '6',
-      dimension: 'Clarity & Organization',
-      text: 'Please provide any additional comments or suggestions.',
-      type: 'open_ended'
-    }
+  const questionTypes = [
+    { value: 'likert', label: '5-Point Scale (Likert)' },
+    { value: 'open_ended', label: 'Open Text' }
   ];
 
   const handleCreate = () => {
     setEditingQuestionnaire(null);
+    setCurrentQuestions([]);
     form.resetFields();
     form.setFieldsValue({ 
-      name: 'New Questionnaire',
-      questions: defaultQuestions 
+      name: '',
+      description: '',
+      status: 'draft'
     });
     setIsModalVisible(true);
   };
 
   const handleEdit = (questionnaire: Questionnaire) => {
     setEditingQuestionnaire(questionnaire);
-    form.setFieldsValue(questionnaire);
+    setCurrentQuestions(questionnaire.questions || []);
+    form.setFieldsValue({
+      name: questionnaire.name,
+      description: questionnaire.description,
+      status: questionnaire.status
+    });
     setIsModalVisible(true);
   };
 
@@ -101,7 +95,8 @@ const QuestionnairesPage: React.FC = () => {
     try {
       const questionnaireData = {
         ...values,
-        questions: values.questions || defaultQuestions
+        questions: currentQuestions,
+        lastUpdated: new Date().toISOString()
       };
 
       if (editingQuestionnaire) {
@@ -117,23 +112,65 @@ const QuestionnairesPage: React.FC = () => {
 
       setIsModalVisible(false);
       form.resetFields();
+      setCurrentQuestions([]);
     } catch (error) {
       message.error('Failed to save questionnaire');
     }
   };
 
+  const handleAddQuestion = () => {
+    setEditingQuestion(null);
+    questionForm.resetFields();
+    questionForm.setFieldsValue({
+      type: 'likert',
+      required: true
+    });
+    setIsQuestionModalVisible(true);
+  };
+
+  const handleEditQuestion = (question: Question) => {
+    setEditingQuestion(question);
+    questionForm.setFieldsValue(question);
+    setIsQuestionModalVisible(true);
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    setCurrentQuestions(prev => prev.filter(q => q.id !== questionId));
+    message.success('Question removed from template');
+  };
+
+  const handleSaveQuestion = (values: any) => {
+    const questionData = {
+      ...values,
+      id: editingQuestion?.id || Date.now().toString()
+    };
+
+    if (editingQuestion) {
+      setCurrentQuestions(prev => 
+        prev.map(q => q.id === editingQuestion.id ? questionData : q)
+      );
+      message.success('Question updated');
+    } else {
+      setCurrentQuestions(prev => [...prev, questionData]);
+      message.success('Question added to template');
+    }
+
+    setIsQuestionModalVisible(false);
+    questionForm.resetFields();
+  };
+
   const columns = [
     {
-      title: 'Name',
+      title: 'Template Name',
       dataIndex: 'name',
       key: 'name',
       sorter: (a: Questionnaire, b: Questionnaire) => a.name.localeCompare(b.name),
     },
     {
-      title: 'Questions',
+      title: 'No. of Questions',
       key: 'questionsCount',
       render: (questionnaire: Questionnaire) => (
-        <Tag color="blue">{questionnaire.questions?.length || 0} questions</Tag>
+        <Tag color="blue">{questionnaire.questions?.length || 0}</Tag>
       ),
     },
     {
@@ -152,6 +189,22 @@ const QuestionnairesPage: React.FC = () => {
           </div>
         );
       },
+    },
+    {
+      title: 'Last Updated',
+      dataIndex: 'lastUpdated',
+      key: 'lastUpdated',
+      render: (date: string) => date ? new Date(date).toLocaleDateString() : 'N/A',
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={status === 'active' ? 'green' : 'orange'}>
+          {status.toUpperCase()}
+        </Tag>
+      ),
     },
     {
       title: 'Actions',
@@ -207,7 +260,7 @@ const QuestionnairesPage: React.FC = () => {
           onClick={handleCreate}
           className="bg-primary-500 hover:bg-primary-600"
         >
-          Create Questionnaire
+          Create Questionnaire Template
         </Button>
       </div>
 
@@ -225,13 +278,13 @@ const QuestionnairesPage: React.FC = () => {
         />
       </Card>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Questionnaire Modal */}
       <Modal
-        title={editingQuestionnaire ? 'Edit Questionnaire' : 'Create Questionnaire'}
+        title={editingQuestionnaire ? 'Edit Questionnaire Template' : 'Create Questionnaire Template'}
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
-        width={800}
+        width={1000}
       >
         <Form
           form={form}
@@ -239,38 +292,87 @@ const QuestionnairesPage: React.FC = () => {
           onFinish={handleSubmit}
           className="mt-4"
         >
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              name="name"
+              label="Template Title"
+              rules={[{ required: true, message: 'Please enter template title' }]}
+            >
+              <Input placeholder="Enter template title" />
+            </Form.Item>
+
+            <Form.Item
+              name="status"
+              label="Status"
+              rules={[{ required: true, message: 'Please select status' }]}
+            >
+              <Select placeholder="Select status">
+                <Option value="draft">Draft</Option>
+                <Option value="active">Active</Option>
+              </Select>
+            </Form.Item>
+          </div>
+
           <Form.Item
-            name="name"
-            label="Questionnaire Name"
-            rules={[{ required: true, message: 'Please enter questionnaire name' }]}
+            name="description"
+            label="Template Description"
           >
-            <Input placeholder="Enter questionnaire name" />
+            <TextArea rows={3} placeholder="Enter template description" />
           </Form.Item>
 
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">Questions Preview</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Questions Configuration</h3>
+              <Button 
+                type="dashed" 
+                icon={<Plus className="w-4 h-4" />}
+                onClick={handleAddQuestion}
+              >
+                Add Question
+              </Button>
+            </div>
+            
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              {defaultQuestions.map((question, index) => (
+              {currentQuestions.map((question, index) => (
                 <Card key={question.id} size="small" className="bg-gray-50">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <Tag color="blue">Q{index + 1}</Tag>
                         <Tag color={question.type === 'likert' ? 'green' : 'orange'}>
-                          {question.type === 'likert' ? 'Likert Scale' : 'Open Ended'}
+                          {question.type === 'likert' ? 'Likert Scale' : 'Open Text'}
                         </Tag>
                         <Tag color="purple" className="text-xs">{question.dimension}</Tag>
+                        {question.required && <Tag color="red" className="text-xs">Required</Tag>}
                       </div>
-                      <p className="text-sm">{question.text}</p>
-                      {question.type === 'likert' && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          Scale: 1 (Very Poor) - 5 (Excellent)
-                        </div>
-                      )}
+                      <p className="text-sm mb-2">{question.text}</p>
                     </div>
+                    <Space>
+                      <Button
+                        size="small"
+                        icon={<Edit className="w-3 h-3" />}
+                        onClick={() => handleEditQuestion(question)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        danger
+                        icon={<Trash2 className="w-3 h-3" />}
+                        onClick={() => handleDeleteQuestion(question.id)}
+                      >
+                        Delete
+                      </Button>
+                    </Space>
                   </div>
                 </Card>
               ))}
+              
+              {currentQuestions.length === 0 && (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded">
+                  No questions added yet. Click "Add Question" to get started.
+                </div>
+              )}
             </div>
           </div>
 
@@ -283,7 +385,78 @@ const QuestionnairesPage: React.FC = () => {
               htmlType="submit"
               className="bg-primary-500 hover:bg-primary-600"
             >
-              {editingQuestionnaire ? 'Update' : 'Create'} Questionnaire
+              {editingQuestionnaire ? 'Update' : 'Create'} Template
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Add/Edit Question Modal */}
+      <Modal
+        title={editingQuestion ? 'Edit Question' : 'Add Question'}
+        open={isQuestionModalVisible}
+        onCancel={() => setIsQuestionModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={questionForm}
+          layout="vertical"
+          onFinish={handleSaveQuestion}
+          className="mt-4"
+        >
+          <Form.Item
+            name="text"
+            label="Question Text"
+            rules={[{ required: true, message: 'Please enter question text' }]}
+          >
+            <TextArea rows={3} placeholder="Enter the question text" />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              name="type"
+              label="Question Type"
+              rules={[{ required: true, message: 'Please select question type' }]}
+            >
+              <Select placeholder="Select question type">
+                {questionTypes.map(type => (
+                  <Option key={type.value} value={type.value}>{type.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="dimension"
+              label="Evaluation Dimension"
+              rules={[{ required: true, message: 'Please select dimension' }]}
+            >
+              <Select placeholder="Select dimension">
+                {dimensions.map(dim => (
+                  <Option key={dim} value={dim}>{dim}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            name="required"
+            valuePropName="checked"
+          >
+            <input type="checkbox" className="mr-2" />
+            This question is required
+          </Form.Item>
+
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button onClick={() => setIsQuestionModalVisible(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="primary" 
+              htmlType="submit"
+              className="bg-primary-500 hover:bg-primary-600"
+            >
+              {editingQuestion ? 'Update' : 'Add'} Question
             </Button>
           </div>
         </Form>
@@ -305,14 +478,17 @@ const QuestionnairesPage: React.FC = () => {
           <div className="space-y-4">
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold">{previewQuestionnaire.name}</h2>
-              <p className="text-gray-600">Session Evaluation Form</p>
+              {previewQuestionnaire.description && (
+                <p className="text-gray-600">{previewQuestionnaire.description}</p>
+              )}
             </div>
             
-            {(previewQuestionnaire.questions || defaultQuestions).map((question, index) => (
+            {(previewQuestionnaire.questions || []).map((question, index) => (
               <div key={question.id} className="border-b pb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-medium">Q{index + 1}.</span>
                   <Tag color="purple" className="text-xs">{question.dimension}</Tag>
+                  {question.required && <Tag color="red" className="text-xs">Required</Tag>}
                 </div>
                 <p className="mb-3">{question.text}</p>
                 
@@ -338,6 +514,12 @@ const QuestionnairesPage: React.FC = () => {
                 )}
               </div>
             ))}
+
+            {(!previewQuestionnaire.questions || previewQuestionnaire.questions.length === 0) && (
+              <div className="text-center py-8 text-gray-500">
+                No questions configured for this template.
+              </div>
+            )}
           </div>
         )}
       </Modal>
