@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, message, Typography, Divider, Space } from 'antd';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { User, Lock, BookOpen, Users } from 'lucide-react';
 import { setCredentials } from '../features/auth/authSlice';
 import { useLoginMutation } from '../api/apiSlice';
@@ -105,7 +104,7 @@ const LoginPage: React.FC = () => {
           </Form.Item>
         </Form>
 
-        <Divider>
+        {/* <Divider>
           <Text className="text-gray-500 text-sm">Demo Access</Text>
         </Divider>
 
@@ -131,15 +130,20 @@ const LoginPage: React.FC = () => {
           >
             Log in as Demo Dean
           </Button>
-        </Space>
+        </Space> */}
 
         <div className="mt-6 text-center">
-          <Text className="text-xs text-gray-500">
+          {/* <Text className="text-xs text-gray-500">
             Demo Credentials Available:<br/>
             HOD: hod.computerscience@example.com<br/>
             Dean: dean@example.com<br/>
             (Any password works)
-          </Text>
+          </Text> */}
+          <div className="mt-4">
+            <Link to="/register">
+              <Button type="link">Create an account</Button>
+            </Link>
+          </div>
         </div>
       </Card>
     </div>

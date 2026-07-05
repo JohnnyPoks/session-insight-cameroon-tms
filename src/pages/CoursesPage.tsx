@@ -13,6 +13,9 @@ const CoursesPage: React.FC = () => {
   const [form] = Form.useForm();
 
   const { data: courses, isLoading } = useGetCoursesQuery();
+
+  console.log({courses, isLoading});
+  
   const [createCourse] = useCreateCourseMutation();
   const [updateCourse] = useUpdateCourseMutation();
   const [deleteCourse] = useDeleteCourseMutation();
@@ -79,12 +82,6 @@ const CoursesPage: React.FC = () => {
       ),
       filters: departments.map(dept => ({ text: dept, value: dept })),
       onFilter: (value: any, record: Course) => record.department === value,
-    },
-    {
-      title: 'Credits',
-      dataIndex: 'credits',
-      key: 'credits',
-      sorter: (a: Course, b: Course) => a.credits - b.credits,
     },
     {
       title: 'Actions',
@@ -171,14 +168,6 @@ const CoursesPage: React.FC = () => {
               rules={[{ required: true, message: 'Please enter course code' }]}
             >
               <Input placeholder="e.g., CS101" />
-            </Form.Item>
-
-            <Form.Item
-              name="credits"
-              label="Credits"
-              rules={[{ required: true, message: 'Please enter credits' }]}
-            >
-              <Input type="number" placeholder="Credits" />
             </Form.Item>
           </div>
 

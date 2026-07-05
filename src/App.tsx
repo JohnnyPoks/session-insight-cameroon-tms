@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -11,22 +10,30 @@ import type { RootState } from './app/store';
 // Components
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/LoginPage';
+import UserRegistrationPage from './pages/UserRegistrationPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import SystemConfigPage from './pages/SystemConfigPage';
+
+// Students Page
+import FeedbackPage from './pages/FeedbackPage';
+
+// HOD pages
+import HODDashboard from './pages/hod/HODDashboard';
 import DashboardPage from './pages/DashboardPage';
 import SessionsPage from './pages/SessionsPage';
 import SessionDetails from './pages/hod/SessionDetails';
-import FeedbackPage from './pages/FeedbackPage';
 import CoursesPage from './pages/CoursesPage';
 import LecturersPage from './pages/LecturersPage';
-import QuestionnairesPage from './pages/QuestionnairesPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import SystemConfigPage from './pages/SystemConfigPage';
 import StudentsPage from './pages/StudentsPage';
+import QuestionnairesPage from './pages/QuestionnairesPage';
+
 
 // Dean pages
-import DeanDashboard from './features/dean/DeanDashboard';
-import DeanSystemConfigPage from './features/dean/SystemConfigPage';
-import DeanProfilePage from './features/dean/DeanProfilePage';
-import UserRegistrationPage from './features/dean/UserRegistrationPage';
+import DeanDashboard from './pages/dean/DeanDashboard';
+import DeanSystemConfigPage from './pages/dean/SystemConfigPage';
+import DeanProfilePage from './pages/dean/DeanProfilePage';
+
+
 
 // Start Mirage server in development
 if (import.meta.env.DEV) {
@@ -72,19 +79,19 @@ const AppContent: React.FC = () => {
                 ) : (
                   <>
                     {/* HOD and other role routes */}
-                    <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
-                    <Route path="/system-config" element={<AppLayout><SystemConfigPage /></AppLayout>} />
+                    <Route path="/dashboard" element={<AppLayout><HODDashboard /></AppLayout>} />
+                    {/* <Route path="/system-config" element={<AppLayout><SystemConfigPage /></AppLayout>} /> */}
+
+                    {/* Common routes for all authenticated users */}
+                    <Route path="/sessions" element={<AppLayout><SessionsPage /></AppLayout>} />
+                    <Route path="/sessions/:sessionId" element={<AppLayout><SessionDetails /></AppLayout>} />
+                    <Route path="/courses" element={<AppLayout><CoursesPage /></AppLayout>} />
+                    <Route path="/lecturers" element={<AppLayout><LecturersPage /></AppLayout>} />
+                    <Route path="/students" element={<AppLayout><StudentsPage /></AppLayout>} />
+                    <Route path="/questionnaires" element={<AppLayout><QuestionnairesPage /></AppLayout>} />
+                    <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
                   </>
                 )}
-                
-                {/* Common routes for all authenticated users */}
-                <Route path="/sessions" element={<AppLayout><SessionsPage /></AppLayout>} />
-                <Route path="/sessions/:sessionId" element={<AppLayout><SessionDetails /></AppLayout>} />
-                <Route path="/courses" element={<AppLayout><CoursesPage /></AppLayout>} />
-                <Route path="/lecturers" element={<AppLayout><LecturersPage /></AppLayout>} />
-                <Route path="/students" element={<AppLayout><StudentsPage /></AppLayout>} />
-                <Route path="/questionnaires" element={<AppLayout><QuestionnairesPage /></AppLayout>} />
-                <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
               </>
             )}
             

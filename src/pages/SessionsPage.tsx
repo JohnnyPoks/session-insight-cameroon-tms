@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, TimePicker, message, Popconfirm } from 'antd';
 import { Calendar, Plus, Edit, Trash2, Users } from 'lucide-react';
-import { useGetSessionsQuery, useCreateSessionMutation, useUpdateSessionMutation, useDeleteSessionMutation, useGetCoursesQuery, useGetLecturersQuery } from '../api/apiSlice';
+import { useGetSessionsQuery, useCreateSessionMutation, useUpdateSessionMutation, useDeleteSessionMutation, useGetCoursesQuery, useGetLecturersQuery, useGetQuestionnairesQuery } from '../api/apiSlice';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 
@@ -20,19 +20,28 @@ interface Session {
   questionnaireId: string;
   evaluationStart?: string;
   evaluationEnd?: string;
+  studentLevel?: string;
 }
 
 const SessionsPage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [form] = Form.useForm();
+  const navigate = useNavigate();
 
   const { data: sessions, isLoading } = useGetSessionsQuery();
   const { data: courses } = useGetCoursesQuery();
   const { data: lecturers } = useGetLecturersQuery();
+  const { data: questionnaires } = useGetQuestionnairesQuery();
   const [createSession] = useCreateSessionMutation();
   const [updateSession] = useUpdateSessionMutation();
   const [deleteSession] = useDeleteSessionMutation();
+
+  // Helper to get department from course
+  const getDepartmentForCourse = (courseCode: string) => {
+    const course = courses?.find((c) => c.courseCode === courseCode);
+    return course ? course.department : '';
+  };
 
   const handleCreate = () => {
     setEditingSession(null);
@@ -46,6 +55,8 @@ const SessionsPage: React.FC = () => {
       ...session,
       date: session.date ? dayjs(session.date) : null,
       time: session.time ? dayjs(session.time, 'HH:mm') : null,
+      studentLevel: session.studentLevel || undefined,
+      questionnaireId: session.questionnaireId || undefined,
     });
     setIsModalVisible(true);
   };
@@ -61,12 +72,15 @@ const SessionsPage: React.FC = () => {
 
   const handleSubmit = async (values: any) => {
     try {
+      const department = getDepartmentForCourse(values.courseCode);
       const sessionData = {
         ...values,
+        department,
         date: values.date ? values.date.toISOString() : new Date().toISOString(),
         time: values.time ? values.time.format('HH:mm') : '10:00',
         studentCount: parseInt(values.studentCount) || 0,
-        questionnaireId: 'default-questionnaire'
+        questionnaireId: values.questionnaireId,
+        studentLevel: values.studentLevel,
       };
 
       if (editingSession) {
@@ -83,6 +97,13 @@ const SessionsPage: React.FC = () => {
       message.error('Failed to save session');
     }
   };
+
+  // 1. Make each session row clickable
+  const onRow = (record: Session) => ({
+    onClick: () => navigate(`/sessions/${record.id}`),
+    style: { cursor: 'pointer' },
+    className: 'hover:bg-gray-50',
+  });
 
   const columns = [
     {
@@ -150,17 +171,17 @@ const SessionsPage: React.FC = () => {
       title: 'Actions',
       key: 'actions',
       render: (session: Session) => (
-        <Space>
+        <Space onClick={e => e.stopPropagation()}>
           <Button
             size="small"
             icon={<Edit className="w-4 h-4" />}
-            onClick={() => handleEdit(session)}
+            onClick={e => { e.stopPropagation(); handleEdit(session); }}
           >
             Edit
           </Button>
           <Popconfirm
             title="Are you sure you want to delete this session?"
-            onConfirm={() => handleDelete(session.id)}
+            onConfirm={e => { e && e.stopPropagation(); handleDelete(session.id); }}
             okText="Yes"
             cancelText="No"
           >
@@ -168,6 +189,7 @@ const SessionsPage: React.FC = () => {
               size="small"
               danger
               icon={<Trash2 className="w-4 h-4" />}
+              onClick={e => e.stopPropagation()}
             >
               Delete
             </Button>
@@ -208,6 +230,7 @@ const SessionsPage: React.FC = () => {
             showSizeChanger: true,
             showQuickJumper: true,
           }}
+          onRow={onRow}
         />
       </Card>
 
@@ -227,27 +250,55 @@ const SessionsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item
               name="courseCode"
-              label="Course Code"
-              rules={[{ required: true, message: 'Please enter course code' }]}
+              label="Course"
+              rules={[{ required: true, message: 'Please select a course' }]}
             >
-              <Input placeholder="e.g., CS101" />
+              <Select
+                placeholder="Select course"
+                onChange={(value) => {
+                  const course = courses?.find((c) => c.courseCode === value);
+                  form.setFieldsValue({
+                    courseName: course?.courseName,
+                    department: course?.department,
+                  });
+                }}
+              >
+                {courses?.map((course) => (
+                  <Option key={course.courseCode} value={course.courseCode}>
+                    {course.courseCode} - {course.courseName}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
 
             <Form.Item
               name="instructorName"
-              label="Instructor"
-              rules={[{ required: true, message: 'Please enter instructor name' }]}
+              label="Lecturer"
+              rules={[{ required: true, message: 'Please select a lecturer' }]}
             >
-              <Input placeholder="Instructor name" />
+              <Select placeholder="Select lecturer">
+                {lecturers?.map((lecturer) => (
+                  <Option key={lecturer.name} value={lecturer.name}>
+                    {lecturer.name}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
           </div>
 
           <Form.Item
             name="courseName"
             label="Course Name"
-            rules={[{ required: true, message: 'Please enter course name' }]}
+            style={{ display: 'none' }}
           >
-            <Input placeholder="Course name" />
+            <Input type="hidden" />
+          </Form.Item>
+          <Form.Item
+            name="department"
+            label="Department"
+            style={{ display: 'none' }}
+          >
+            <Input type="hidden" />
           </Form.Item>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -278,20 +329,6 @@ const SessionsPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item
-              name="department"
-              label="Department"
-              rules={[{ required: true, message: 'Please select department' }]}
-            >
-              <Select placeholder="Select department">
-                <Option value="Computer Science">Computer Science</Option>
-                <Option value="Electrical Engineering">Electrical Engineering</Option>
-                <Option value="Mathematics">Mathematics</Option>
-                <Option value="Physics">Physics</Option>
-                <Option value="Chemistry">Chemistry</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
               name="status"
               label="Status"
               rules={[{ required: true, message: 'Please select status' }]}
@@ -302,7 +339,32 @@ const SessionsPage: React.FC = () => {
                 <Option value="closed">Closed</Option>
               </Select>
             </Form.Item>
+
+            <Form.Item
+              name="questionnaireId"
+              label="Questionnaire"
+              rules={[{ required: true, message: 'Please select a questionnaire' }]}
+            >
+              <Select placeholder="Select questionnaire">
+                {questionnaires?.map((q) => (
+                  <Option key={q.id} value={q.id}>{q.name}</Option>
+                ))}
+              </Select>
+            </Form.Item>
           </div>
+
+          <Form.Item
+            name="studentLevel"
+            label="Student Level"
+            rules={[{ required: true, message: 'Please select student level' }]}
+          >
+            <Select placeholder="Select student level">
+              <Option value="100">100</Option>
+              <Option value="200">200</Option>
+              <Option value="300">300</Option>
+              <Option value="400">400</Option>
+            </Select>
+          </Form.Item>
 
           <div className="flex justify-end space-x-2 mt-6">
             <Button onClick={() => setIsModalVisible(false)}>

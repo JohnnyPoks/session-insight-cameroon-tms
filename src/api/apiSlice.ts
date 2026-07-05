@@ -1,11 +1,11 @@
-
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../app/store';
 
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api',
+      baseUrl: '/api',
+    // baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000/api',
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token;
       if (token) {
@@ -27,7 +27,7 @@ export const apiSlice = createApi({
 
     register: builder.mutation({
       query: (userData) => ({
-        url: '/register',
+        url: '/auth/register',
         method: 'POST',
         body: userData,
       }),

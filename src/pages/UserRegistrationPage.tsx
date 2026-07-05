@@ -1,27 +1,40 @@
-
 import React from 'react';
 import { Card, Form, Input, Button, message, Typography } from 'antd';
 import { User, Mail, Lock, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useRegisterMutation } from '../api/apiSlice';
 
 const { Title, Text } = Typography;
 
 const UserRegistrationPage: React.FC = () => {
   const [form] = Form.useForm();
+  const [register, { isLoading }] = useRegisterMutation();
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: unknown) => {
     try {
-      // Simulate registration API call
-      console.log('Registration data:', values);
+      // Call the registration API
+      await register(values).unwrap();
       message.success('Registration successful! Your account will be reviewed by the Dean for role assignment.');
       form.resetFields();
-    } catch (error) {
-      message.error('Registration failed. Please try again.');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object' && 'message' in error.data) {
+        // @ts-expect-error RTK Query error object type is not known at compile time
+        message.error(error.data.message);
+      } else {
+        message.error('Registration failed. Please try again.');
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md shadow-2xl relative">
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-lg">
+            <span className="text-lg"><span className="sr-only">Registering...</span><svg className="animate-spin h-8 w-8 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg></span>
+          </div>
+        )}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center">
@@ -111,6 +124,8 @@ const UserRegistrationPage: React.FC = () => {
               htmlType="submit" 
               className="w-full bg-primary-500 hover:bg-primary-600"
               size="large"
+              loading={isLoading}
+              disabled={isLoading}
             >
               Register
             </Button>
@@ -122,6 +137,11 @@ const UserRegistrationPage: React.FC = () => {
             After registration, your account will be reviewed by the Dean<br/>
             for role assignment and department allocation.
           </Text>
+          <div className="mt-4">
+            <Link to="/login">
+              <Button type="link">Back to Login</Button>
+            </Link>
+          </div>
         </div>
       </Card>
     </div>

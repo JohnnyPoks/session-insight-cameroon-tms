@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, Row, Col, Statistic, Typography, Table, Tag, Button, Select, DatePicker, Space } from 'antd';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -168,7 +167,7 @@ const HODDashboard: React.FC = () => {
       </Row>
 
       {/* Filters */}
-      <Card title="Chart Filters">
+      {/* <Card title="Chart Filters">
         <Space wrap>
           <div>
             <Text strong>Course: </Text>
@@ -214,13 +213,13 @@ const HODDashboard: React.FC = () => {
             />
           </div>
         </Space>
-      </Card>
+      </Card> */}
 
       {/* Charts */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card title="SEI Trend Over Time" className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
+          <Card title="SEI Trend Over Time" style={{height: 400}}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -239,8 +238,8 @@ const HODDashboard: React.FC = () => {
         </Col>
         
         <Col xs={24} lg={12}>
-          <Card title="Monthly Responses" className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
+          <Card title="Monthly Responses" style={{height: 400}}>
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -254,14 +253,20 @@ const HODDashboard: React.FC = () => {
       </Row>
 
       {/* New Dimension Scores Chart */}
-      <Card title="Dimension Scores (Department Average)">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={dimensionData} layout="horizontal">
+      <Card title="Dimension Scores (Grouped by Dimension)" style={{height: 450}}>
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={[
+            { dimension: 'Clarity & Organization', score: 4.2 },
+            { dimension: 'Student Engagement', score: 4.0 },
+            { dimension: 'Pedagogical Methods', score: 4.1 },
+            { dimension: 'Content Delivery', score: 4.3 },
+            { dimension: 'Learning Impact', score: 4.0 }
+          ]}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" domain={[0, 5]} />
-            <YAxis dataKey="dimension" type="category" width={150} />
+            <XAxis dataKey="dimension" angle={-45} textAnchor="end" height={80} />
+            <YAxis domain={[0, 5]} />
             <Tooltip />
-            <Bar dataKey="score" fill="#14B8A6" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="score" fill="#14B8A6" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
